@@ -207,7 +207,12 @@ class MainWindow(Adw.ApplicationWindow):
         palette_rows: list[Adw.ActionRow] = []
         for key in palette_labels:
             color_row = Adw.ActionRow(title=palette_labels[key])
-            color_button = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
+            # Transparency is not used by the application palette.  Keeping the
+            # alpha control enabled makes GTK's built-in chooser taller than
+            # the available dialog and introduces an unnecessary scrollbar.
+            color_dialog = Gtk.ColorDialog()
+            color_dialog.set_with_alpha(False)
+            color_button = Gtk.ColorDialogButton(dialog=color_dialog)
             rgba = Gdk.RGBA()
             rgba.parse(palette_defaults[key])
             color_button.set_rgba(rgba)
