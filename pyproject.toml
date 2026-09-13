@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wake-on-lan-for-linux"
-version = "0.4.0.dev0"
+version = "0.5.0.dev0"
 description = "A simple Wake-on-LAN manager for Linux"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,6 +23,14 @@ wol-linux = "wol_linux.__main__:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
+
+[tool.setuptools.package-data]
+wol_linux = ["locale/*/LC_MESSAGES/*.mo"]
+
+[tool.setuptools.data-files]
+"share/applications" = ["data/io.github.Hyperboreus85.WakeOnLanForLinux.desktop"]
+"share/metainfo" = ["data/io.github.Hyperboreus85.WakeOnLanForLinux.metainfo.xml"]
+"share/icons/hicolor/scalable/apps" = ["data/icons/hicolor/scalable/apps/io.github.Hyperboreus85.WakeOnLanForLinux.svg"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

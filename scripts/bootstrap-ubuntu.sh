@@ -18,9 +18,12 @@ sudo apt-get install -y \
   python3-pip \
   python3-venv \
   gir1.2-adw-1 \
-  gir1.2-gtk-4.0
+  gir1.2-gtk-4.0 \
+  gettext
 
+"$project_dir/scripts/compile-translations.sh"
 python3 -m venv --system-site-packages "$project_dir/.venv"
 "$project_dir/.venv/bin/python" -m pip install --editable "$project_dir"
+"$project_dir/scripts/install-desktop-entry.sh"
 
-echo "Configurazione completata. Avvia con: $project_dir/run.sh"
+echo "Configurazione completata. Avvia dal menu Applicazioni o con: $project_dir/run.sh"

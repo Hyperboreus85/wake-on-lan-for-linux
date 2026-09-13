@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Wake on LAN for Linux
+Comment=Wake and manage computers on your local network
+Comment[it]=Sveglia e gestisci i computer della rete locale
+Exec=wol-linux
+Icon=io.github.Hyperboreus85.WakeOnLanForLinux
+Terminal=false
+Categories=Network;Utility;
+Keywords=Wake;LAN;WOL;Network;
+Keywords[it]=Sveglia;LAN;WOL;Rete;
+StartupNotify=true
+StartupWMClass=io.github.Hyperboreus85.WakeOnLanForLinux

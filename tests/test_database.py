@@ -71,3 +71,16 @@ class DatabaseTests(unittest.TestCase):
                 [computer.ipv4 for computer in database.list_computers()],
                 ["192.168.10.5", "192.168.10.11", "192.168.10.120"],
             )
+
+    def test_import_merges_computers_by_mac(self) -> None:
+        with TemporaryDirectory() as directory:
+            database = Database(f"{directory}/test.db")
+            database.add_computer(
+                Computer(name="Vecchio", mac="00:11:22:33:44:55", ipv4="192.168.1.2")
+            )
+            imported = database.import_computers(
+                [Computer(name="Nuovo", mac="00:11:22:33:44:55", ipv4="192.168.1.20")]
+            )
+            self.assertEqual(imported, 1)
+            self.assertEqual(len(database.list_computers()), 1)
+            self.assertEqual(database.list_computers()[0].name, "Nuovo")

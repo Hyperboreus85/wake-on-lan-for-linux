@@ -3,13 +3,15 @@ from __future__ import annotations
 import re
 import socket
 
+from .i18n import tr as _
+
 _MAC_PATTERN = re.compile(r"^[0-9A-Fa-f]{12}$")
 
 
 def normalize_mac(mac_address: str) -> str:
     compact = mac_address.strip().replace(":", "").replace("-", "").replace(".", "")
     if not _MAC_PATTERN.fullmatch(compact):
-        raise ValueError("Indirizzo MAC non valido")
+        raise ValueError(_("Indirizzo MAC non valido"))
     return ":".join(compact[index : index + 2] for index in range(0, 12, 2)).upper()
 
 
@@ -26,4 +28,3 @@ def wake(mac_address: str, broadcast: str = "255.255.255.255", port: int = 9) ->
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         return sock.sendto(packet, (broadcast, port))
-

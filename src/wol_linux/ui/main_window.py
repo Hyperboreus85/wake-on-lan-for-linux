@@ -5,44 +5,61 @@ import threading
 
 from gi.repository import Adw, GLib, Gtk, Pango
 
+from ..appearance import apply_appearance
+from ..backup import export_backup, load_backup, restore_translations
 from ..database import Database
+from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
 from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
+from ..settings import ACCENTS, THEMES, AppSettings
 from ..wol import wake
 
 
 class MainWindow(Adw.ApplicationWindow):
-    def __init__(self, application: Adw.Application, database: Database) -> None:
-        super().__init__(application=application, title="Wake on LAN for Linux")
+    def __init__(
+        self,
+        application: Adw.Application,
+        database: Database,
+        settings: AppSettings,
+    ) -> None:
+        super().__init__(application=application, title=_("Wake on LAN for Linux"))
         self.database = database
+        self.settings = settings
         self.set_default_size(980, 620)
 
         header = Adw.HeaderBar()
-        add_button = Gtk.Button(icon_name="list-add-symbolic", tooltip_text="Aggiungi computer")
+        add_button = Gtk.Button(icon_name="list-add-symbolic", tooltip_text=_("Aggiungi computer"))
         add_button.connect("clicked", lambda *_: self._show_computer_dialog())
         header.pack_start(add_button)
 
-        self.edit_button = Gtk.Button(icon_name="document-edit-symbolic", tooltip_text="Modifica")
+        self.edit_button = Gtk.Button(icon_name="document-edit-symbolic", tooltip_text=_("Modifica"))
         self.edit_button.connect("clicked", self._edit_selected)
         header.pack_start(self.edit_button)
 
-        self.delete_button = Gtk.Button(icon_name="user-trash-symbolic", tooltip_text="Elimina")
+        self.delete_button = Gtk.Button(icon_name="user-trash-symbolic", tooltip_text=_("Elimina"))
         self.delete_button.add_css_class("destructive-action")
         self.delete_button.connect("clicked", self._delete_selected)
         header.pack_start(self.delete_button)
 
         self.scan_button = Gtk.Button(
             icon_name="system-search-symbolic",
-            tooltip_text="Scansiona la rete locale",
+            tooltip_text=_("Scansiona la rete locale"),
         )
         self.scan_button.connect("clicked", self._start_network_scan)
         header.pack_start(self.scan_button)
 
-        self.wake_all_button = Gtk.Button(label="Sveglia tutti")
+        self.wake_all_button = Gtk.Button(label=_("Sveglia tutti"))
         self.wake_all_button.connect("clicked", self._wake_all)
         header.pack_end(self.wake_all_button)
 
-        self.wake_button = Gtk.Button(label="Sveglia selezionati")
+        settings_button = Gtk.Button(
+            icon_name="preferences-system-symbolic",
+            tooltip_text=_("Impostazioni"),
+        )
+        settings_button.connect("clicked", self._show_preferences)
+        header.pack_end(settings_button)
+
+        self.wake_button = Gtk.Button(label=_("Sveglia selezionati"))
         self.wake_button.add_css_class("suggested-action")
         self.wake_button.connect("clicked", self._wake_selected)
         header.pack_end(self.wake_button)
@@ -55,8 +72,8 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.empty_page = Adw.StatusPage(
             icon_name="network-wired-symbolic",
-            title="Nessun computer configurato",
-            description="Aggiungi un computer per inviare il primo magic packet.",
+            title=_("Nessun computer configurato"),
+            description=_("Aggiungi un computer per inviare il primo magic packet."),
         )
 
         self.computer_list = Gtk.ListBox(
@@ -89,26 +106,232 @@ class MainWindow(Adw.ApplicationWindow):
         self._refresh_computers()
         GLib.timeout_add_seconds(30, self._periodic_status_check)
 
+    def _show_preferences(self, *_args: object) -> None:
+        dialog = Gtk.Dialog(title=_("Impostazioni"), transient_for=self, modal=True)
+        dialog.set_default_size(520, 520)
+        dialog.add_button(_("Annulla"), Gtk.ResponseType.CANCEL)
+        apply_button = dialog.add_button(_("Applica"), Gtk.ResponseType.ACCEPT)
+        apply_button.add_css_class("suggested-action")
+
+        page = Adw.PreferencesPage()
+        appearance_group = Adw.PreferencesGroup(title=_("Aspetto"))
+        language_group = Adw.PreferencesGroup(title=_("Lingua"))
+        backup_group = Adw.PreferencesGroup(
+            title=_("Backup e trasferimento"),
+            description=_("Salva macchine e personalizzazioni in un unico file"),
+        )
+        page.add(appearance_group)
+        page.add(language_group)
+        page.add(backup_group)
+
+        theme_values = list(THEMES)
+        theme_row = Adw.ComboRow(
+            title=_("Tema"),
+            model=Gtk.StringList.new(
+                [_("Sistema"), _("Chiaro"), _("Scuro")]
+            ),
+            selected=theme_values.index(self.settings.theme),
+        )
+        appearance_group.add(theme_row)
+
+        accent_values = list(ACCENTS)
+        accent_row = Adw.ComboRow(
+            title=_("Colore principale"),
+            model=Gtk.StringList.new(
+                [_("Arancione Ubuntu"), _("Blu"), _("Verde"), _("Viola"), _("Rosso")]
+            ),
+            selected=accent_values.index(self.settings.accent),
+        )
+        appearance_group.add(accent_row)
+
+        languages = available_languages()
+        language_codes = [code for code, _label in languages]
+        selected_language = (
+            language_codes.index(self.settings.language)
+            if self.settings.language in language_codes
+            else 0
+        )
+        language_row = Adw.ComboRow(
+            title=_("Lingua dell'applicazione"),
+            subtitle=_("Il cambio della lingua richiede il riavvio"),
+            model=Gtk.StringList.new([label for _code, label in languages]),
+            selected=selected_language,
+        )
+        language_group.add(language_row)
+
+        import_row = Adw.ActionRow(
+            title=_("Importa traduzione"),
+            subtitle=_("Catalogo GNU gettext con nome fr.mo o de_DE.mo"),
+        )
+        import_button = Gtk.Button(label=_("Scegli file"), valign=Gtk.Align.CENTER)
+        import_button.connect("clicked", lambda *_: self._choose_translation_file(dialog))
+        import_row.add_suffix(import_button)
+        language_group.add(import_row)
+
+        export_row = Adw.ActionRow(
+            title=_("Esporta backup completo"),
+            subtitle=_("Include macchine, indirizzi, note, colori, tema e lingua"),
+        )
+        export_button = Gtk.Button(label=_("Esporta"), valign=Gtk.Align.CENTER)
+        export_button.connect("clicked", lambda *_: self._choose_backup_destination(dialog))
+        export_row.add_suffix(export_button)
+        backup_group.add(export_row)
+
+        restore_row = Adw.ActionRow(
+            title=_("Importa backup"),
+            subtitle=_("Unisce le macchine usando il MAC e ripristina le impostazioni"),
+        )
+        restore_button = Gtk.Button(label=_("Importa"), valign=Gtk.Align.CENTER)
+        restore_button.connect("clicked", lambda *_: self._choose_backup_file(dialog))
+        restore_row.add_suffix(restore_button)
+        backup_group.add(restore_row)
+
+        dialog.get_content_area().append(page)
+
+        def handle_response(current_dialog: Gtk.Dialog, response: int) -> None:
+            if response != Gtk.ResponseType.ACCEPT:
+                current_dialog.destroy()
+                return
+            old_language = self.settings.language
+            self.settings.theme = theme_values[theme_row.get_selected()]
+            self.settings.accent = accent_values[accent_row.get_selected()]
+            self.settings.language = language_codes[language_row.get_selected()]
+            self.settings.save()
+            apply_appearance(self.settings)
+            current_dialog.destroy()
+            if self.settings.language != old_language:
+                self.toasts.add_toast(
+                    Adw.Toast(title=_("Riavvia l'applicazione per applicare la nuova lingua"))
+                )
+            else:
+                self.toasts.add_toast(Adw.Toast(title=_("Impostazioni salvate")))
+
+        dialog.connect("response", handle_response)
+        dialog.present()
+
+    def _choose_translation_file(self, parent: Gtk.Window) -> None:
+        chooser = Gtk.FileChooserNative(
+            title=_("Importa traduzione"),
+            transient_for=parent,
+            action=Gtk.FileChooserAction.OPEN,
+            accept_label=_("Importa"),
+            cancel_label=_("Annulla"),
+        )
+        file_filter = Gtk.FileFilter(name=_("Cataloghi gettext (.mo)"))
+        file_filter.add_pattern("*.mo")
+        chooser.add_filter(file_filter)
+
+        def handle_response(current_chooser: Gtk.FileChooserNative, response: int) -> None:
+            if response != Gtk.ResponseType.ACCEPT:
+                return
+            selected_file = current_chooser.get_file()
+            path = selected_file.get_path() if selected_file else None
+            if not path:
+                self._show_error(_("Importazione non riuscita"), _("Seleziona un file locale .mo"))
+                return
+            try:
+                language = install_translation(path)
+            except ValueError as exc:
+                self._show_error(_("Importazione non riuscita"), str(exc))
+                return
+            self.toasts.add_toast(
+                Adw.Toast(title=_("Traduzione {language} installata").format(language=language))
+            )
+
+        chooser.connect("response", handle_response)
+        chooser.show()
+
+    def _choose_backup_destination(self, parent: Gtk.Window) -> None:
+        chooser = Gtk.FileChooserNative(
+            title=_("Esporta backup completo"),
+            transient_for=parent,
+            action=Gtk.FileChooserAction.SAVE,
+            accept_label=_("Esporta"),
+            cancel_label=_("Annulla"),
+        )
+        chooser.set_current_name("wake-on-lan-for-linux-backup.json")
+
+        def handle_response(current_chooser: Gtk.FileChooserNative, response: int) -> None:
+            if response != Gtk.ResponseType.ACCEPT:
+                return
+            selected_file = current_chooser.get_file()
+            path = selected_file.get_path() if selected_file else None
+            if not path:
+                self._show_error(_("Esportazione non riuscita"), _("Scegli un file locale"))
+                return
+            try:
+                export_backup(path, self.settings, self.database.list_computers())
+            except OSError as exc:
+                self._show_error(_("Esportazione non riuscita"), str(exc))
+                return
+            self.toasts.add_toast(Adw.Toast(title=_("Backup completo esportato")))
+
+        chooser.connect("response", handle_response)
+        chooser.show()
+
+    def _choose_backup_file(self, parent: Gtk.Window) -> None:
+        chooser = Gtk.FileChooserNative(
+            title=_("Importa backup"),
+            transient_for=parent,
+            action=Gtk.FileChooserAction.OPEN,
+            accept_label=_("Importa"),
+            cancel_label=_("Annulla"),
+        )
+        file_filter = Gtk.FileFilter(name=_("Backup Wake on LAN for Linux (.json)"))
+        file_filter.add_pattern("*.json")
+        chooser.add_filter(file_filter)
+
+        def handle_response(current_chooser: Gtk.FileChooserNative, response: int) -> None:
+            if response != Gtk.ResponseType.ACCEPT:
+                return
+            selected_file = current_chooser.get_file()
+            path = selected_file.get_path() if selected_file else None
+            if not path:
+                self._show_error(_("Importazione non riuscita"), _("Seleziona un file locale"))
+                return
+            try:
+                backup = load_backup(path)
+                imported = self.database.import_computers(backup.computers)
+                restore_translations(backup.translations)
+            except (OSError, ValueError, sqlite3.DatabaseError) as exc:
+                self._show_error(_("Importazione non riuscita"), str(exc))
+                return
+
+            old_language = self.settings.language
+            self.settings.theme = backup.settings.theme
+            self.settings.accent = backup.settings.accent
+            self.settings.language = backup.settings.language
+            self.settings.save()
+            apply_appearance(self.settings)
+            self._refresh_computers()
+            message = _("Backup importato: {count} macchine unite").format(count=imported)
+            if self.settings.language != old_language:
+                message += _(". Riavvia l'applicazione per applicare la lingua")
+            self.toasts.add_toast(Adw.Toast(title=message))
+
+        chooser.connect("response", handle_response)
+        chooser.show()
+
     def _show_computer_dialog(self, computer: Computer | None = None) -> None:
         editing = computer is not None
         dialog = Gtk.Dialog(
-            title="Modifica computer" if editing else "Aggiungi computer",
+            title=_("Modifica computer") if editing else _("Aggiungi computer"),
             transient_for=self,
             modal=True,
         )
         dialog.set_default_size(520, 650)
-        dialog.add_button("Annulla", Gtk.ResponseType.CANCEL)
-        save_button = dialog.add_button("Salva", Gtk.ResponseType.ACCEPT)
+        dialog.add_button(_("Annulla"), Gtk.ResponseType.CANCEL)
+        save_button = dialog.add_button(_("Salva"), Gtk.ResponseType.ACCEPT)
         save_button.add_css_class("suggested-action")
         dialog.set_default_response(Gtk.ResponseType.ACCEPT)
 
         page = Adw.PreferencesPage()
         required_group = Adw.PreferencesGroup(
-            title="Computer",
-            description="Nome e indirizzo MAC sono obbligatori.",
+            title=_("Computer"),
+            description=_("Nome e indirizzo MAC sono obbligatori."),
         )
-        network_group = Adw.PreferencesGroup(title="Wake-on-LAN")
-        details_group = Adw.PreferencesGroup(title="Dettagli facoltativi")
+        network_group = Adw.PreferencesGroup(title=_("Wake-on-LAN"))
+        details_group = Adw.PreferencesGroup(title=_("Dettagli facoltativi"))
         page.add(required_group)
         page.add(network_group)
         page.add(details_group)
@@ -126,24 +349,24 @@ class MainWindow(Adw.ApplicationWindow):
             group.add(entry)
             fields[key] = entry
 
-        add_field(required_group, "name", "Nome computer", value("name"))
-        add_field(required_group, "mac", "Indirizzo MAC", value("mac"))
-        add_field(network_group, "ipv4", "Indirizzo IPv4", value("ipv4"))
+        add_field(required_group, "name", _("Nome computer"), value("name"))
+        add_field(required_group, "mac", _("Indirizzo MAC"), value("mac"))
+        add_field(network_group, "ipv4", _("Indirizzo IPv4"), value("ipv4"))
         add_field(
             network_group,
             "broadcast",
-            "Indirizzo broadcast",
+            _("Indirizzo broadcast"),
             value("broadcast", "255.255.255.255"),
         )
-        add_field(network_group, "port", "Porta UDP", value("wol_port", "9"))
-        add_field(details_group, "hostname", "Hostname", value("hostname"))
-        add_field(details_group, "vendor", "Produttore scheda di rete", value("vendor"))
-        add_field(details_group, "manufacturer", "Produttore computer", value("manufacturer"))
-        add_field(details_group, "model", "Modello", value("model"))
-        add_field(details_group, "serial_number", "Numero seriale", value("serial_number"))
+        add_field(network_group, "port", _("Porta UDP"), value("wol_port", "9"))
+        add_field(details_group, "hostname", _("Hostname"), value("hostname"))
+        add_field(details_group, "vendor", _("Produttore scheda di rete"), value("vendor"))
+        add_field(details_group, "manufacturer", _("Produttore computer"), value("manufacturer"))
+        add_field(details_group, "model", _("Modello"), value("model"))
+        add_field(details_group, "serial_number", _("Numero seriale"), value("serial_number"))
         add_field(details_group, "bios", "BIOS", value("bios"))
-        add_field(details_group, "group_name", "Gruppo", value("group_name"))
-        add_field(details_group, "notes", "Note", value("notes"))
+        add_field(details_group, "group_name", _("Gruppo"), value("group_name"))
+        add_field(details_group, "notes", _("Note"), value("notes"))
         dialog.get_content_area().append(page)
 
         def handle_response(current_dialog: Gtk.Dialog, response: int) -> None:
@@ -173,18 +396,18 @@ class MainWindow(Adw.ApplicationWindow):
                 else:
                     self.database.add_computer(saved)
             except ValueError as exc:
-                self._show_error("Dati non validi", str(exc))
+                self._show_error(_("Dati non validi"), str(exc))
                 return
             except sqlite3.IntegrityError:
                 self._show_error(
-                    "Indirizzo MAC già presente",
-                    "Esiste già un altro computer con questo indirizzo MAC.",
+                    _("Indirizzo MAC già presente"),
+                    _("Esiste già un altro computer con questo indirizzo MAC."),
                 )
                 return
 
             current_dialog.destroy()
             self._refresh_computers()
-            action = "modificato" if editing else "aggiunto"
+            action = _("modificato") if editing else _("aggiunto")
             self.toasts.add_toast(Adw.Toast(title=f"{saved.name.strip()} {action}"))
 
         dialog.connect("response", handle_response)
@@ -201,11 +424,11 @@ class MainWindow(Adw.ApplicationWindow):
         for computer in computers:
             row = Gtk.ListBoxRow(activatable=True)
             row.computer = computer
-            row.check_button = Gtk.CheckButton(tooltip_text="Seleziona o deseleziona")
+            row.check_button = Gtk.CheckButton(tooltip_text=_("Seleziona o deseleziona"))
             row.check_button.connect("toggled", self._on_selection_changed)
             row.status_icon = Gtk.Image(
                 icon_name="media-record-symbolic",
-                tooltip_text="Stato in verifica",
+                tooltip_text=_("Stato in verifica"),
             )
             row.status_icon.add_css_class("warning")
 
@@ -266,10 +489,10 @@ class MainWindow(Adw.ApplicationWindow):
         grid.set_margin_end(30)
         grid.attach(Gtk.Label(width_request=16), 0, 0, 1, 1)
         for column, text, width, expand in (
-            (1, "Indirizzo IP", 16, False),
-            (2, "Nome / hostname", 28, True),
-            (3, "Indirizzo MAC", 20, False),
-            (4, "Stato", 6, False),
+            (1, _("Indirizzo IP"), 16, False),
+            (2, _("Nome / hostname"), 28, True),
+            (3, _("Indirizzo MAC"), 20, False),
+            (4, _("Stato"), 6, False),
         ):
             label = self._table_label(text, width, expand)
             label.add_css_class("heading")
@@ -282,7 +505,9 @@ class MainWindow(Adw.ApplicationWindow):
         self.edit_button.set_sensitive(count == 1)
         self.delete_button.set_sensitive(count > 0)
         self.wake_button.set_label(
-            "Sveglia selezionati" if count < 2 else f"Sveglia selezionati ({count})"
+            _("Sveglia selezionati")
+            if count < 2
+            else _("Sveglia selezionati ({count})").format(count=count)
         )
 
     def _check_statuses_async(self, computers: list[Computer]) -> None:
@@ -311,20 +536,20 @@ class MainWindow(Adw.ApplicationWindow):
                 row.status_icon.remove_css_class(css_class)
             if status is True:
                 row.status_icon.add_css_class("success")
-                row.status_icon.set_tooltip_text("Online")
+                row.status_icon.set_tooltip_text(_("Online"))
             elif status is False:
                 row.status_icon.add_css_class("error")
-                row.status_icon.set_tooltip_text("Offline o non raggiungibile")
+                row.status_icon.set_tooltip_text(_("Offline o non raggiungibile"))
             else:
                 row.status_icon.add_css_class("warning")
-                row.status_icon.set_tooltip_text("Stato sconosciuto: IP o hostname mancante")
+                row.status_icon.set_tooltip_text(_("Stato sconosciuto: IP o hostname mancante"))
             break
         return GLib.SOURCE_REMOVE
 
     def _start_network_scan(self, *_args: object) -> None:
         self.scan_button.set_sensitive(False)
         self.scan_progress.set_fraction(0)
-        self.scan_progress.set_text("Rilevamento rete…")
+        self.scan_progress.set_text(_("Rilevamento rete…"))
         self.scan_progress.set_visible(True)
 
         def progress(completed: int, total: int) -> None:
@@ -343,14 +568,16 @@ class MainWindow(Adw.ApplicationWindow):
     def _update_scan_progress(self, completed: int, total: int) -> bool:
         if total:
             self.scan_progress.set_fraction(completed / total)
-        self.scan_progress.set_text(f"Scansione rete: {completed}/{total}")
+        self.scan_progress.set_text(
+            _("Scansione rete: {completed}/{total}").format(completed=completed, total=total)
+        )
         return GLib.SOURCE_REMOVE
 
     def _finish_network_scan(self, result: ScanResult | None, error: str | None) -> bool:
         self.scan_button.set_sensitive(True)
         self.scan_progress.set_visible(False)
         if error:
-            self._show_error("Scansione non riuscita", error)
+            self._show_error(_("Scansione non riuscita"), error)
         elif result is not None:
             self._show_scan_results(result)
         return GLib.SOURCE_REMOVE
@@ -360,15 +587,19 @@ class MainWindow(Adw.ApplicationWindow):
         available = [host for host in result.hosts if host.mac not in existing_macs]
         if not available:
             self.toasts.add_toast(
-                Adw.Toast(title=f"Nessun nuovo dispositivo trovato in {result.local_network.network}")
+                Adw.Toast(
+                    title=_("Nessun nuovo dispositivo trovato in {network}").format(
+                        network=result.local_network.network
+                    )
+                )
             )
             self._check_statuses_async(self.database.list_computers())
             return
 
-        dialog = Gtk.Dialog(title="Dispositivi trovati", transient_for=self, modal=True)
+        dialog = Gtk.Dialog(title=_("Dispositivi trovati"), transient_for=self, modal=True)
         dialog.set_default_size(620, 520)
-        dialog.add_button("Annulla", Gtk.ResponseType.CANCEL)
-        import_button = dialog.add_button("Importa selezionati", Gtk.ResponseType.ACCEPT)
+        dialog.add_button(_("Annulla"), Gtk.ResponseType.CANCEL)
+        import_button = dialog.add_button(_("Importa selezionati"), Gtk.ResponseType.ACCEPT)
         import_button.add_css_class("suggested-action")
 
         box = Gtk.Box(
@@ -381,16 +612,19 @@ class MainWindow(Adw.ApplicationWindow):
         )
         box.append(
             Gtk.Label(
-                label=f"Rete {result.local_network.network} · {len(available)} nuovi dispositivi",
+                label=_("Rete {network} · {count} nuovi dispositivi").format(
+                    network=result.local_network.network,
+                    count=len(available),
+                ),
                 xalign=0,
             )
         )
         scan_header = self._build_table_grid()
         scan_header.attach(Gtk.Label(width_request=24), 0, 0, 1, 1)
         for column, text, width, expand in (
-            (1, "Indirizzo IP", 16, False),
-            (2, "Hostname", 24, True),
-            (3, "Indirizzo MAC", 20, False),
+            (1, _("Indirizzo IP"), 16, False),
+            (2, _("Hostname"), 24, True),
+            (3, _("Indirizzo MAC"), 20, False),
         ):
             label = self._table_label(text, width, expand)
             label.add_css_class("heading")
@@ -446,7 +680,11 @@ class MainWindow(Adw.ApplicationWindow):
                 imported += 1
             current_dialog.destroy()
             self._refresh_computers()
-            self.toasts.add_toast(Adw.Toast(title=f"{imported} dispositivi importati"))
+            self.toasts.add_toast(
+                Adw.Toast(
+                    title=_("{count} dispositivi importati").format(count=imported)
+                )
+            )
 
         dialog.connect("response", handle_response)
         dialog.present()
@@ -464,11 +702,15 @@ class MainWindow(Adw.ApplicationWindow):
         count = len(selected)
         dialog = Adw.MessageDialog(
             transient_for=self,
-            heading="Eliminare i computer selezionati?" if count > 1 else "Eliminare il computer?",
-            body=f"Verranno eliminati {count} computer dal database locale.",
+            heading=_("Eliminare i computer selezionati?")
+            if count > 1
+            else _("Eliminare il computer?"),
+            body=_("Verranno eliminati {count} computer dal database locale.").format(
+                count=count
+            ),
         )
-        dialog.add_response("cancel", "Annulla")
-        dialog.add_response("delete", "Elimina")
+        dialog.add_response("cancel", _("Annulla"))
+        dialog.add_response("delete", _("Elimina"))
         dialog.set_default_response("cancel")
         dialog.set_close_response("cancel")
         dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
@@ -480,7 +722,9 @@ class MainWindow(Adw.ApplicationWindow):
             ids = [item.id for item in selected if item.id is not None]
             deleted = self.database.delete_computers(ids)
             self._refresh_computers()
-            self.toasts.add_toast(Adw.Toast(title=f"{deleted} computer eliminati"))
+            self.toasts.add_toast(
+                Adw.Toast(title=_("{count} computer eliminati").format(count=deleted))
+            )
 
         dialog.connect("response", handle_response)
         dialog.present()
@@ -492,33 +736,41 @@ class MainWindow(Adw.ApplicationWindow):
         if len(computers) == 1:
             self._send_wake_packets(computers)
         else:
-            self._confirm_bulk_wake(computers, "i computer selezionati")
+            self._confirm_bulk_wake(computers, _("i computer selezionati"))
 
     def _wake_all(self, *_args: object) -> None:
         computers = self.database.list_computers()
         if computers:
-            self._confirm_bulk_wake(computers, "tutti i computer")
+            self._confirm_bulk_wake(computers, _("tutti i computer"))
 
     def _confirm_bulk_wake(self, computers: list[Computer], target: str, step: int = 1) -> None:
         count = len(computers)
         messages = (
             (
-                "Conferma accensione multipla — 1/3",
-                f"Stai per inviare il comando Wake-on-LAN a {count} computer ({target}).",
+                _("Conferma accensione multipla — 1/3"),
+                _("Stai per inviare il comando Wake-on-LAN a {count} computer ({target}).").format(
+                    count=count,
+                    target=target,
+                ),
             ),
             (
-                "Seconda conferma — 2/3",
-                "Controlla che nessuno dei computer sia stato selezionato per errore.",
+                _("Seconda conferma — 2/3"),
+                _("Controlla che nessuno dei computer sia stato selezionato per errore."),
             ),
             (
-                "Ultima conferma — 3/3",
-                f"Inviare ora {count} magic packet? Questa operazione accende i computer; non li spegne.",
+                _("Ultima conferma — 3/3"),
+                _(
+                    "Inviare ora {count} magic packet? Questa operazione accende i computer; "
+                    "non li spegne."
+                ).format(count=count),
             ),
         )
         heading, body = messages[step - 1]
         dialog = Adw.MessageDialog(transient_for=self, heading=heading, body=body)
-        dialog.add_response("cancel", "Annulla")
-        dialog.add_response("continue", "OK, continua" if step < 3 else "Sì, sveglia")
+        dialog.add_response("cancel", _("Annulla"))
+        dialog.add_response(
+            "continue", _("OK, continua") if step < 3 else _("Sì, sveglia")
+        )
         dialog.set_default_response("cancel")
         dialog.set_close_response("cancel")
         if step == 3:
@@ -547,12 +799,21 @@ class MainWindow(Adw.ApplicationWindow):
         sent = len(computers) - len(failures)
         if failures:
             self._show_error(
-                "Invio parzialmente riuscito",
-                f"Pacchetti inviati: {sent}. Errori: {', '.join(failures)}.",
+                _("Invio parzialmente riuscito"),
+                _("Pacchetti inviati: {sent}. Errori: {failures}.").format(
+                    sent=sent,
+                    failures=", ".join(failures),
+                ),
             )
         else:
-            label = computers[0].name if len(computers) == 1 else f"{sent} computer"
-            self.toasts.add_toast(Adw.Toast(title=f"Magic packet inviato a {label}"))
+            label = (
+                computers[0].name
+                if len(computers) == 1
+                else _("{count} computer").format(count=sent)
+            )
+            self.toasts.add_toast(
+                Adw.Toast(title=_("Magic packet inviato a {label}").format(label=label))
+            )
         GLib.timeout_add_seconds(5, self._refresh_status_after_wake)
 
     def _refresh_status_after_wake(self) -> bool:
@@ -561,6 +822,6 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _show_error(self, heading: str, body: str) -> None:
         dialog = Adw.MessageDialog(transient_for=self, heading=heading, body=body)
-        dialog.add_response("close", "Chiudi")
+        dialog.add_response("close", _("Chiudi"))
         dialog.set_default_response("close")
         dialog.present()

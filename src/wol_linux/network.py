@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from typing import Callable
 
+from .i18n import tr as _
 from .wol import normalize_mac
 
 MAX_SCAN_HOSTS = 1024
@@ -62,7 +63,7 @@ def parse_routes(payload: str) -> LocalNetwork:
         if preferred:
             candidates = preferred
     if not candidates:
-        raise RuntimeError("Nessuna rete IPv4 locale rilevata")
+        raise RuntimeError(_("Nessuna rete IPv4 locale rilevata"))
     return max(candidates, key=lambda item: item.network.prefixlen)
 
 
@@ -121,7 +122,7 @@ def detect_local_network() -> LocalNetwork:
             timeout=5,
         )
     except (OSError, subprocess.SubprocessError) as exc:
-        raise RuntimeError(f"Impossibile rilevare la rete locale: {exc}") from exc
+        raise RuntimeError(_("Impossibile rilevare la rete locale: {error}").format(error=exc)) from exc
     return parse_routes(process.stdout)
 
 
@@ -148,8 +149,13 @@ def scan_local_network(
     addresses = [str(address) for address in local_network.network.hosts()]
     if len(addresses) > MAX_SCAN_HOSTS:
         raise RuntimeError(
-            f"La rete {local_network.network} contiene {len(addresses)} host. "
-            f"Per sicurezza la scansione è limitata a {MAX_SCAN_HOSTS}."
+            _("La rete {network} contiene {count} host. ").format(
+                network=local_network.network,
+                count=len(addresses),
+            )
+            + _("Per sicurezza la scansione è limitata a {limit}.").format(
+                limit=MAX_SCAN_HOSTS
+            )
         )
 
     completed = 0
@@ -169,7 +175,9 @@ def scan_local_network(
             timeout=5,
         )
     except (OSError, subprocess.SubprocessError) as exc:
-        raise RuntimeError(f"Impossibile leggere i dispositivi rilevati: {exc}") from exc
+        raise RuntimeError(
+            _("Impossibile leggere i dispositivi rilevati: {error}").format(error=exc)
+        ) from exc
     hosts = parse_neighbours(process.stdout, local_network.network)
     with ThreadPoolExecutor(max_workers=min(16, max(1, len(hosts)))) as executor:
         hostnames = list(executor.map(lambda host: resolve_hostname(host.ipv4), hosts))

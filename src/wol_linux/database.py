@@ -6,6 +6,7 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+from .i18n import tr as _
 from .models import Computer
 from .wol import normalize_mac
 
@@ -71,7 +72,7 @@ class Database:
 
     def update_computer(self, computer: Computer) -> None:
         if computer.id is None:
-            raise ValueError("Impossibile modificare un computer senza ID")
+            raise ValueError(_("Impossibile modificare un computer senza ID"))
         values = self._computer_values(computer)
         with closing(self.connect()) as connection:
             cursor = connection.execute(
@@ -86,7 +87,7 @@ class Database:
                 (*values, computer.id),
             )
             if cursor.rowcount != 1:
-                raise ValueError("Computer non trovato")
+                raise ValueError(_("Computer non trovato"))
             connection.commit()
 
     def delete_computers(self, computer_ids: list[int]) -> int:
@@ -101,6 +102,37 @@ class Database:
             connection.commit()
             return cursor.rowcount
 
+    def import_computers(self, computers: list[Computer]) -> int:
+        prepared = [self._computer_values(computer) for computer in computers]
+        if not prepared:
+            return 0
+        with closing(self.connect()) as connection:
+            connection.executemany(
+                """
+                INSERT INTO computers (
+                    name, hostname, ipv4, mac, broadcast, wol_port, vendor,
+                    manufacturer, model, serial_number, bios, group_name, notes
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(mac) DO UPDATE SET
+                    name = excluded.name,
+                    hostname = excluded.hostname,
+                    ipv4 = excluded.ipv4,
+                    broadcast = excluded.broadcast,
+                    wol_port = excluded.wol_port,
+                    vendor = excluded.vendor,
+                    manufacturer = excluded.manufacturer,
+                    model = excluded.model,
+                    serial_number = excluded.serial_number,
+                    bios = excluded.bios,
+                    group_name = excluded.group_name,
+                    notes = excluded.notes,
+                    updated_at = CURRENT_TIMESTAMP
+                """,
+                prepared,
+            )
+            connection.commit()
+        return len(prepared)
+
     @staticmethod
     def _computer_values(computer: Computer) -> tuple[object, ...]:
         values = (
@@ -111,11 +143,11 @@ class Database:
             computer.notes.strip(),
         )
         if not values[0]:
-            raise ValueError("Il nome del computer è obbligatorio")
+            raise ValueError(_("Il nome del computer è obbligatorio"))
         if not values[4]:
-            raise ValueError("L'indirizzo broadcast è obbligatorio")
+            raise ValueError(_("L'indirizzo broadcast è obbligatorio"))
         if not 1 <= computer.wol_port <= 65535:
-            raise ValueError("La porta deve essere compresa tra 1 e 65535")
+            raise ValueError(_("La porta deve essere compresa tra 1 e 65535"))
         return values
 
     def list_computers(self) -> list[Computer]:

@@ -1,0 +1,560 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the Wake on LAN for Linux package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: Wake on LAN for Linux 0.5.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-09-13 06:02-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: src/wol_linux/ui/main_window.py:309
+msgid ". Riavvia l'applicazione per applicare la lingua"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:31 src/wol_linux/ui/main_window.py:318
+msgid "Aggiungi computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:76
+msgid "Aggiungi un computer per inviare il primo magic packet."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:112 src/wol_linux/ui/main_window.py:218
+#: src/wol_linux/ui/main_window.py:250 src/wol_linux/ui/main_window.py:278
+#: src/wol_linux/ui/main_window.py:323 src/wol_linux/ui/main_window.py:601
+#: src/wol_linux/ui/main_window.py:712 src/wol_linux/ui/main_window.py:770
+msgid "Annulla"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:113
+msgid "Applica"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:141
+msgid "Arancione Ubuntu"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:117
+msgid "Aspetto"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:280
+msgid "Backup Wake on LAN for Linux (.json)"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:267
+msgid "Backup completo esportato"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:120
+msgid "Backup e trasferimento"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:307
+#, python-brace-format
+msgid "Backup importato: {count} macchine unite"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:141
+msgid "Blu"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:220
+msgid "Cataloghi gettext (.mo)"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:164
+msgid "Catalogo GNU gettext con nome fr.mo o de_DE.mo"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:131
+msgid "Chiaro"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:825
+msgid "Chiudi"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:139
+msgid "Colore principale"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:330
+msgid "Computer"
+msgstr ""
+
+#: src/wol_linux/database.py:90
+msgid "Computer non trovato"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:750
+msgid "Conferma accensione multipla — 1/3"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:758
+msgid "Controlla che nessuno dei computer sia stato selezionato per errore."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:399
+msgid "Dati non validi"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:334
+msgid "Dettagli facoltativi"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:599
+msgid "Dispositivi trovati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:39 src/wol_linux/ui/main_window.py:713
+msgid "Elimina"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:705
+msgid "Eliminare i computer selezionati?"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:707
+msgid "Eliminare il computer?"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:404
+msgid "Esiste già un altro computer con questo indirizzo MAC."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:175 src/wol_linux/ui/main_window.py:249
+msgid "Esporta"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:172 src/wol_linux/ui/main_window.py:246
+msgid "Esporta backup completo"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:260 src/wol_linux/ui/main_window.py:265
+msgid "Esportazione non riuscita"
+msgstr ""
+
+#: src/wol_linux/backup.py:62
+msgid "Formato o versione del backup non supportati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:368
+msgid "Gruppo"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:362 src/wol_linux/ui/main_window.py:626
+msgid "Hostname"
+msgstr ""
+
+#: src/wol_linux/backup.py:96
+msgid "Il backup contiene traduzioni non valide"
+msgstr ""
+
+#: src/wol_linux/backup.py:84
+msgid "Il backup contiene una macchina non valida"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:156
+msgid "Il cambio della lingua richiede il riavvio"
+msgstr ""
+
+#: src/wol_linux/i18n.py:71 src/wol_linux/i18n.py:83
+msgid "Il catalogo di traduzione .mo non è valido"
+msgstr ""
+
+#: src/wol_linux/backup.py:60
+msgid "Il file di backup non contiene un oggetto JSON valido"
+msgstr ""
+
+#: src/wol_linux/backup.py:58
+msgid "Il file di backup non è leggibile o non contiene JSON valido"
+msgstr ""
+
+#: src/wol_linux/database.py:146
+msgid "Il nome del computer è obbligatorio"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:184 src/wol_linux/ui/main_window.py:217
+#: src/wol_linux/ui/main_window.py:277
+msgid "Importa"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:181 src/wol_linux/ui/main_window.py:274
+msgid "Importa backup"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:602
+msgid "Importa selezionati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:163 src/wol_linux/ui/main_window.py:214
+msgid "Importa traduzione"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:230 src/wol_linux/ui/main_window.py:235
+#: src/wol_linux/ui/main_window.py:290 src/wol_linux/ui/main_window.py:297
+msgid "Importazione non riuscita"
+msgstr ""
+
+#: src/wol_linux/network.py:179
+#, python-brace-format
+msgid "Impossibile leggere i dispositivi rilevati: {error}"
+msgstr ""
+
+#: src/wol_linux/database.py:75
+msgid "Impossibile modificare un computer senza ID"
+msgstr ""
+
+#: src/wol_linux/network.py:125
+#, python-brace-format
+msgid "Impossibile rilevare la rete locale: {error}"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:57 src/wol_linux/ui/main_window.py:110
+msgid "Impostazioni"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:207
+msgid "Impostazioni salvate"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:173
+msgid "Include macchine, indirizzi, note, colori, tema e lingua"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:492 src/wol_linux/ui/main_window.py:625
+msgid "Indirizzo IP"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:354
+msgid "Indirizzo IPv4"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:353 src/wol_linux/ui/main_window.py:494
+#: src/wol_linux/ui/main_window.py:627
+msgid "Indirizzo MAC"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:403
+msgid "Indirizzo MAC già presente"
+msgstr ""
+
+#: src/wol_linux/wol.py:14
+msgid "Indirizzo MAC non valido"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:358
+msgid "Indirizzo broadcast"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:763
+#, python-brace-format
+msgid ""
+"Inviare ora {count} magic packet? Questa operazione accende i computer; non "
+"li spegne."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:802
+msgid "Invio parzialmente riuscito"
+msgstr ""
+
+#: src/wol_linux/database.py:148
+msgid "L'indirizzo broadcast è obbligatorio"
+msgstr ""
+
+#: src/wol_linux/database.py:150
+msgid "La porta deve essere compresa tra 1 e 65535"
+msgstr ""
+
+#: src/wol_linux/network.py:152
+#, python-brace-format
+msgid "La rete {network} contiene {count} host. "
+msgstr ""
+
+#: src/wol_linux/backup.py:66
+msgid "Le impostazioni nel backup non sono valide"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:118
+msgid "Lingua"
+msgstr ""
+
+#: src/wol_linux/i18n.py:52
+msgid "Lingua del sistema"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:155
+msgid "Lingua dell'applicazione"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:815
+#, python-brace-format
+msgid "Magic packet inviato a {label}"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:365
+msgid "Modello"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:35
+msgid "Modifica"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:318
+msgid "Modifica computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:75
+msgid "Nessun computer configurato"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:591
+#, python-brace-format
+msgid "Nessun nuovo dispositivo trovato in {network}"
+msgstr ""
+
+#: src/wol_linux/network.py:66
+msgid "Nessuna rete IPv4 locale rilevata"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:493
+msgid "Nome / hostname"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:352
+msgid "Nome computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:331
+msgid "Nome e indirizzo MAC sono obbligatori."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:369
+msgid "Note"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:366
+msgid "Numero seriale"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:772
+msgid "OK, continua"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:542
+msgid "Offline o non raggiungibile"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:539
+msgid "Online"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:803
+#, python-brace-format
+msgid "Pacchetti inviati: {sent}. Errori: {failures}."
+msgstr ""
+
+#: src/wol_linux/network.py:156
+#, python-brace-format
+msgid "Per sicurezza la scansione è limitata a {limit}."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:361
+msgid "Porta UDP"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:364
+msgid "Produttore computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:363
+msgid "Produttore scheda di rete"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:615
+#, python-brace-format
+msgid "Rete {network} · {count} nuovi dispositivi"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:204
+msgid "Riavvia l'applicazione per applicare la nuova lingua"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:552
+msgid "Rilevamento rete…"
+msgstr ""
+
+#: src/wol_linux/i18n.py:79
+msgid "Rinomina il file con il codice lingua, per esempio fr.mo o de_DE.mo"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:141
+msgid "Rosso"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:324
+msgid "Salva"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:121
+msgid "Salva macchine e personalizzazioni in un unico file"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:46
+msgid "Scansiona la rete locale"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:580
+msgid "Scansione non riuscita"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:572
+#, python-brace-format
+msgid "Scansione rete: {completed}/{total}"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:166
+msgid "Scegli file"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:260
+msgid "Scegli un file locale"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:131
+msgid "Scuro"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:757
+msgid "Seconda conferma — 2/3"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:427
+msgid "Seleziona o deseleziona"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:290
+msgid "Seleziona un file locale"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:230
+msgid "Seleziona un file locale .mo"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:131
+msgid "Sistema"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:751
+#, python-brace-format
+msgid "Stai per inviare il comando Wake-on-LAN a {count} computer ({target})."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:495
+msgid "Stato"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:431
+msgid "Stato in verifica"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:545
+msgid "Stato sconosciuto: IP o hostname mancante"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:62 src/wol_linux/ui/main_window.py:508
+msgid "Sveglia selezionati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:510
+#, python-brace-format
+msgid "Sveglia selezionati ({count})"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:51
+msgid "Sveglia tutti"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:772
+msgid "Sì, sveglia"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:129
+msgid "Tema"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:238
+#, python-brace-format
+msgid "Traduzione {language} installata"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:761
+msgid "Ultima conferma — 3/3"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:182
+msgid "Unisce le macchine usando il MAC e ripristina le impostazioni"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:141
+msgid "Verde"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:708
+#, python-brace-format
+msgid "Verranno eliminati {count} computer dal database locale."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:141
+msgid "Viola"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:25
+msgid "Wake on LAN for Linux"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:333
+msgid "Wake-on-LAN"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:410
+msgid "aggiunto"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:739
+msgid "i computer selezionati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:410
+msgid "modificato"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:744
+msgid "tutti i computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:812
+#, python-brace-format
+msgid "{count} computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:726
+#, python-brace-format
+msgid "{count} computer eliminati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py:685
+#, python-brace-format
+msgid "{count} dispositivi importati"
+msgstr ""

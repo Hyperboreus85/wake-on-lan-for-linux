@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.Hyperboreus85.WakeOnLanForLinux</id>
+  <name>Wake on LAN for Linux</name>
+  <summary>Wake and manage computers on your local network</summary>
+  <summary xml:lang="it">Sveglia e gestisci i computer della rete locale</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <description>
+    <p>
+      Wake on LAN for Linux provides a modern GTK interface for managing computers,
+      discovering devices on the local network, checking their status, and sending
+      Wake-on-LAN magic packets.
+    </p>
+  </description>
+  <launchable type="desktop-id">io.github.Hyperboreus85.WakeOnLanForLinux.desktop</launchable>
+  <developer_name>Wake on LAN for Linux contributors</developer_name>
+  <url type="homepage">https://github.com/Hyperboreus85/wake-on-lan-for-linux</url>
+  <content_rating type="oars-1.1" />
+</component>
