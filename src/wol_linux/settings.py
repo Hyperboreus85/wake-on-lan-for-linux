@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import os
-from dataclasses import asdict, dataclass
+import re
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 THEMES = ("system", "light", "dark")
 ACCENTS = ("ubuntu", "blue", "green", "purple", "red")
+PALETTE_KEYS = ("accent", "button", "text", "background")
+HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def default_settings_path() -> Path:
@@ -19,6 +22,8 @@ class AppSettings:
     theme: str = "system"
     accent: str = "ubuntu"
     language: str = "system"
+    custom_colors: dict[str, str] = field(default_factory=dict)
+    font_family: str = ""
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> AppSettings:
@@ -27,10 +32,20 @@ class AppSettings:
             payload = json.loads(settings_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError):
             return cls()
+        raw_colors = payload.get("custom_colors", {})
+        custom_colors = {
+            str(key): str(value).upper()
+            for key, value in raw_colors.items()
+            if key in PALETTE_KEYS and isinstance(value, str) and HEX_COLOR.fullmatch(value)
+        } if isinstance(raw_colors, dict) else {}
+        raw_font = payload.get("font_family", "")
+        font_family = str(raw_font).strip() if isinstance(raw_font, str) else ""
         return cls(
             theme=payload.get("theme") if payload.get("theme") in THEMES else "system",
             accent=payload.get("accent") if payload.get("accent") in ACCENTS else "ubuntu",
             language=str(payload.get("language", "system")),
+            custom_colors=custom_colors,
+            font_family=font_family,
         )
 
     def save(self, path: str | Path | None = None) -> None:

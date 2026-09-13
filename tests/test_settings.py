@@ -19,3 +19,14 @@ class SettingsTests(unittest.TestCase):
             with open(path, "w", encoding="utf-8") as stream:
                 stream.write('{"theme":"invalid","accent":"invalid"}')
             self.assertEqual(AppSettings.load(path), AppSettings())
+
+    def test_custom_palette_and_font_round_trip(self) -> None:
+        with TemporaryDirectory() as directory:
+            path = f"{directory}/settings.json"
+            expected = AppSettings(
+                accent="blue",
+                custom_colors={"accent": "#123456", "button": "#ABCDEF"},
+                font_family="Atkinson Hyperlegible",
+            )
+            expected.save(path)
+            self.assertEqual(AppSettings.load(path), expected)

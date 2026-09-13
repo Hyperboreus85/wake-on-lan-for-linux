@@ -37,16 +37,21 @@ def apply_appearance(settings: AppSettings) -> None:
         return
     if _provider is not None:
         Gtk.StyleContext.remove_provider_for_display(display, _provider)
-    color = ACCENT_COLORS[settings.accent]
+    color = settings.custom_colors.get("accent", ACCENT_COLORS[settings.accent])
+    button_color = settings.custom_colors.get("button", color)
+    text_color = settings.custom_colors.get("text", "#FFFFFF")
+    background_color = settings.custom_colors.get("background", "#00000000")
     hover_color = ACCENT_HOVER_COLORS[settings.accent]
     _provider = Gtk.CssProvider()
-    _provider.load_from_data(
-        f"""
+    font_family = settings.font_family.replace("\\", "\\\\").replace('"', '\\"')
+    css = f"""
         @define-color accent_color {color};
         @define-color accent_bg_color {color};
-        @define-color accent_fg_color #ffffff;
+        @define-color accent_fg_color {text_color};
         @define-color theme_selected_bg_color {color};
-        @define-color theme_selected_fg_color #ffffff;
+        @define-color theme_selected_fg_color {text_color};
+        @define-color theme_fg_color {text_color};
+        @define-color window_bg_color {background_color};
 
         /* Keep Libadwaita action buttons in sync with the selected accent. */
         button.suggested-action,
@@ -54,8 +59,8 @@ def apply_appearance(settings: AppSettings) -> None:
         button.suggested-action:active,
         .suggested-action > button,
         .suggested-action button {{
-            background-color: {color};
-            color: #ffffff;
+            background-color: {button_color};
+            color: {text_color};
         }}
         button.suggested-action:hover,
         .suggested-action > button:hover,
@@ -66,8 +71,12 @@ def apply_appearance(settings: AppSettings) -> None:
             background-color: {color};
             opacity: 0.45;
         }}
-        """.encode()
-    )
+        window, .background {{
+            color: {text_color};
+        }}
+        """ \
+        + (f'* {{ font-family: "{font_family}"; }}' if font_family else "")
+    _provider.load_from_data(css.encode())
     Gtk.StyleContext.add_provider_for_display(
         display,
         _provider,

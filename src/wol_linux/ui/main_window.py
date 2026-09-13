@@ -3,11 +3,12 @@ from __future__ import annotations
 import sqlite3
 import threading
 
-from gi.repository import Adw, GLib, Gtk, Pango
+from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from ..appearance import apply_appearance
 from ..backup import export_backup, load_backup, restore_translations
 from ..database import Database
+from ..fonts import install_font
 from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
 from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
@@ -118,12 +119,22 @@ class MainWindow(Adw.ApplicationWindow):
 
         page = Adw.PreferencesPage()
         appearance_group = Adw.PreferencesGroup(title=_("Aspetto"))
+        palette_group = Adw.PreferencesGroup(
+            title=_("Palette personalizzata"),
+            description=_("Scegli i colori RGB per accenti, pulsanti, testo e sfondo"),
+        )
+        font_group = Adw.PreferencesGroup(
+            title=_("Font"),
+            description=_("Installa un font TTF/OTF nella tua cartella utente"),
+        )
         language_group = Adw.PreferencesGroup(title=_("Lingua"))
         backup_group = Adw.PreferencesGroup(
             title=_("Backup e trasferimento"),
             description=_("Salva macchine e personalizzazioni in un unico file"),
         )
         page.add(appearance_group)
+        page.add(palette_group)
+        page.add(font_group)
         page.add(language_group)
         page.add(backup_group)
 
@@ -146,6 +157,47 @@ class MainWindow(Adw.ApplicationWindow):
             selected=accent_values.index(self.settings.accent),
         )
         appearance_group.add(accent_row)
+
+        palette_buttons: dict[str, Gtk.ColorDialogButton] = {}
+        palette_defaults = {
+            "accent": self.settings.custom_colors.get("accent", "#E95420"),
+            "button": self.settings.custom_colors.get("button", "#E95420"),
+            "text": self.settings.custom_colors.get("text", "#FFFFFF"),
+            "background": self.settings.custom_colors.get("background", "#2D2D2D"),
+        }
+        palette_labels = {
+            "accent": _("Colore accento"),
+            "button": _("Colore pulsanti"),
+            "text": _("Colore testo"),
+            "background": _("Colore sfondo"),
+        }
+        changed_palette: set[str] = set()
+        for key in ("accent", "button", "text", "background"):
+            color_row = Adw.ActionRow(title=palette_labels[key])
+            color_button = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
+            rgba = Gdk.RGBA()
+            rgba.parse(palette_defaults[key])
+            color_button.set_rgba(rgba)
+            color_button.set_valign(Gtk.Align.CENTER)
+            color_button.connect(
+                "notify::rgba", lambda *_args, palette_key=key: changed_palette.add(palette_key)
+            )
+            color_row.add_suffix(color_button)
+            palette_group.add(color_row)
+            palette_buttons[key] = color_button
+
+        pending_font = [self.settings.font_family]
+        font_row = Adw.ActionRow(
+            title=_("Font dell'applicazione"),
+            subtitle=self.settings.font_family or _("Predefinito di sistema"),
+        )
+        font_button = Gtk.Button(label=_("Installa font"), valign=Gtk.Align.CENTER)
+        font_button.connect(
+            "clicked",
+            lambda *_: self._choose_font_file(dialog, pending_font, font_row),
+        )
+        font_row.add_suffix(font_button)
+        font_group.add(font_row)
 
         languages = available_languages()
         language_codes = [code for code, _label in languages]
@@ -199,6 +251,13 @@ class MainWindow(Adw.ApplicationWindow):
             self.settings.theme = theme_values[theme_row.get_selected()]
             self.settings.accent = accent_values[accent_row.get_selected()]
             self.settings.language = language_codes[language_row.get_selected()]
+            self.settings.custom_colors.update(
+                {
+                    key: self._rgba_to_hex(palette_buttons[key].get_rgba())
+                    for key in changed_palette
+                }
+            )
+            self.settings.font_family = pending_font[0]
             self.settings.save()
             apply_appearance(self.settings)
             current_dialog.destroy()
@@ -211,6 +270,50 @@ class MainWindow(Adw.ApplicationWindow):
 
         dialog.connect("response", handle_response)
         dialog.present()
+
+    @staticmethod
+    def _rgba_to_hex(rgba: Gdk.RGBA) -> str:
+        return "#{:02X}{:02X}{:02X}".format(
+            round(rgba.red * 255), round(rgba.green * 255), round(rgba.blue * 255)
+        )
+
+    def _choose_font_file(
+        self,
+        parent: Gtk.Window,
+        pending_font: list[str],
+        font_row: Adw.ActionRow,
+    ) -> None:
+        chooser = Gtk.FileChooserNative(
+            title=_("Installa font"),
+            transient_for=parent,
+            action=Gtk.FileChooserAction.OPEN,
+            accept_label=_("Installa"),
+            cancel_label=_("Annulla"),
+        )
+        file_filter = Gtk.FileFilter(name=_("Font TTF, OTF o TTC"))
+        for pattern in ("*.ttf", "*.TTF", "*.otf", "*.OTF", "*.ttc", "*.TTC"):
+            file_filter.add_pattern(pattern)
+        chooser.add_filter(file_filter)
+
+        def handle_response(current_chooser: Gtk.FileChooserNative, response: int) -> None:
+            if response != Gtk.ResponseType.ACCEPT:
+                return
+            selected_file = current_chooser.get_file()
+            path = selected_file.get_path() if selected_file else None
+            if not path:
+                self._show_error(_("Installazione non riuscita"), _("Seleziona un file font locale"))
+                return
+            try:
+                family = install_font(path)
+            except (OSError, ValueError) as exc:
+                self._show_error(_("Installazione non riuscita"), str(exc))
+                return
+            pending_font[0] = family
+            font_row.set_subtitle(family)
+            self.toasts.add_toast(Adw.Toast(title=_("Font installato: {font}").format(font=family)))
+
+        chooser.connect("response", handle_response)
+        chooser.show()
 
     def _choose_translation_file(self, parent: Gtk.Window) -> None:
         chooser = Gtk.FileChooserNative(
