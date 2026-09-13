@@ -2,9 +2,9 @@
 
 A simple, modern Wake-on-LAN manager designed for Ubuntu and other Linux desktops.
 
-The project is currently in early development. Version 0.2 includes a GTK 4/Libadwaita
-interface, a local SQLite device list, device editing and deletion, multiple selection,
-and Wake-on-LAN packet delivery.
+The project is currently in early development. Version 0.3 includes a GTK 4/Libadwaita
+interface, a local SQLite device list, device editing and deletion, toggleable multiple
+selection, local-network discovery, online indicators, and Wake-on-LAN packet delivery.
 
 Bulk wake operations are deliberately protected by three consecutive confirmation
 dialogs. The final dialog shows the exact number of affected computers, helping prevent
@@ -16,6 +16,8 @@ accidental mass wake-ups.
 - Store IPv4, MAC, broadcast, UDP port, vendor, model, serial number, BIOS, group, and notes.
 - Wake one or several selected computers.
 - Wake all configured computers with three-step confirmation.
+- Scan every address in the detected local IPv4 subnet and choose which devices to import.
+- Show a status LED for each saved device: yellow while checking, green online, red offline.
 - Validate and normalize common MAC address formats.
 - Keep application data outside the source directory in a local SQLite database.
 

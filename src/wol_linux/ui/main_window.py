@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
+import threading
 
-from gi.repository import Adw, Gtk
+from gi.repository import Adw, GLib, Gtk
 
 from ..database import Database
 from ..models import Computer
+from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
 from ..wol import wake
 
 
@@ -29,6 +31,13 @@ class MainWindow(Adw.ApplicationWindow):
         self.delete_button.connect("clicked", self._delete_selected)
         header.pack_start(self.delete_button)
 
+        self.scan_button = Gtk.Button(
+            icon_name="network-workgroup-symbolic",
+            tooltip_text="Scansiona la rete locale",
+        )
+        self.scan_button.connect("clicked", self._start_network_scan)
+        header.pack_start(self.scan_button)
+
         self.wake_all_button = Gtk.Button(label="Sveglia tutti")
         self.wake_all_button.connect("clicked", self._wake_all)
         header.pack_end(self.wake_all_button)
@@ -41,6 +50,9 @@ class MainWindow(Adw.ApplicationWindow):
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(header)
 
+        self.scan_progress = Gtk.ProgressBar(show_text=True, visible=False)
+        toolbar.add_top_bar(self.scan_progress)
+
         self.empty_page = Adw.StatusPage(
             icon_name="network-wired-symbolic",
             title="Nessun computer configurato",
@@ -48,14 +60,14 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
         self.computer_list = Gtk.ListBox(
-            selection_mode=Gtk.SelectionMode.MULTIPLE,
+            selection_mode=Gtk.SelectionMode.NONE,
             margin_top=18,
             margin_bottom=18,
             margin_start=18,
             margin_end=18,
         )
         self.computer_list.add_css_class("boxed-list")
-        self.computer_list.connect("selected-rows-changed", self._on_selection_changed)
+        self.computer_list.connect("row-activated", self._toggle_row)
 
         list_scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
         list_scroller.set_child(self.computer_list)
@@ -68,6 +80,7 @@ class MainWindow(Adw.ApplicationWindow):
         toolbar.set_content(self.toasts)
         self.set_content(toolbar)
         self._refresh_computers()
+        GLib.timeout_add_seconds(30, self._periodic_status_check)
 
     def _show_computer_dialog(self, computer: Computer | None = None) -> None:
         editing = computer is not None
@@ -186,15 +199,36 @@ class MainWindow(Adw.ApplicationWindow):
                 activatable=True,
             )
             row.computer = computer
+            row.check_button = Gtk.CheckButton(tooltip_text="Seleziona o deseleziona")
+            row.check_button.connect("toggled", self._on_selection_changed)
+            row.add_prefix(row.check_button)
             row.add_prefix(Gtk.Image.new_from_icon_name("computer-symbolic"))
+            row.status_icon = Gtk.Image(
+                icon_name="media-record-symbolic",
+                tooltip_text="Stato in verifica",
+            )
+            row.status_icon.add_css_class("warning")
+            row.add_suffix(row.status_icon)
             self.computer_list.append(row)
 
         self.stack.set_visible_child_name("list" if computers else "empty")
         self.wake_all_button.set_sensitive(bool(computers))
         self._on_selection_changed()
+        self._check_statuses_async(computers)
 
     def _selected_computers(self) -> list[Computer]:
-        return [row.computer for row in self.computer_list.get_selected_rows()]
+        return [row.computer for row in self._computer_rows() if row.check_button.get_active()]
+
+    def _computer_rows(self) -> list[Adw.ActionRow]:
+        rows: list[Adw.ActionRow] = []
+        child = self.computer_list.get_first_child()
+        while child is not None:
+            rows.append(child)
+            child = child.get_next_sibling()
+        return rows
+
+    def _toggle_row(self, _list_box: Gtk.ListBox, row: Adw.ActionRow) -> None:
+        row.check_button.set_active(not row.check_button.get_active())
 
     def _on_selection_changed(self, *_args: object) -> None:
         count = len(self._selected_computers())
@@ -204,6 +238,149 @@ class MainWindow(Adw.ApplicationWindow):
         self.wake_button.set_label(
             "Sveglia selezionati" if count < 2 else f"Sveglia selezionati ({count})"
         )
+
+    def _check_statuses_async(self, computers: list[Computer]) -> None:
+        generation = getattr(self, "_status_generation", 0) + 1
+        self._status_generation = generation
+
+        def worker() -> None:
+            for computer in computers:
+                address = computer.ipv4 or computer.hostname
+                status = ping_host(address)
+                GLib.idle_add(self._apply_status, generation, computer.id, status)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _periodic_status_check(self) -> bool:
+        self._check_statuses_async(self.database.list_computers())
+        return GLib.SOURCE_CONTINUE
+
+    def _apply_status(self, generation: int, computer_id: int | None, status: bool | None) -> bool:
+        if generation != self._status_generation:
+            return GLib.SOURCE_REMOVE
+        for row in self._computer_rows():
+            if row.computer.id != computer_id:
+                continue
+            for css_class in ("success", "error", "warning"):
+                row.status_icon.remove_css_class(css_class)
+            if status is True:
+                row.status_icon.add_css_class("success")
+                row.status_icon.set_tooltip_text("Online")
+            elif status is False:
+                row.status_icon.add_css_class("error")
+                row.status_icon.set_tooltip_text("Offline o non raggiungibile")
+            else:
+                row.status_icon.add_css_class("warning")
+                row.status_icon.set_tooltip_text("Stato sconosciuto: IP o hostname mancante")
+            break
+        return GLib.SOURCE_REMOVE
+
+    def _start_network_scan(self, *_args: object) -> None:
+        self.scan_button.set_sensitive(False)
+        self.scan_progress.set_fraction(0)
+        self.scan_progress.set_text("Rilevamento rete…")
+        self.scan_progress.set_visible(True)
+
+        def progress(completed: int, total: int) -> None:
+            GLib.idle_add(self._update_scan_progress, completed, total)
+
+        def worker() -> None:
+            try:
+                result = scan_local_network(progress)
+            except (OSError, RuntimeError, ValueError) as exc:
+                GLib.idle_add(self._finish_network_scan, None, str(exc))
+                return
+            GLib.idle_add(self._finish_network_scan, result, None)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _update_scan_progress(self, completed: int, total: int) -> bool:
+        if total:
+            self.scan_progress.set_fraction(completed / total)
+        self.scan_progress.set_text(f"Scansione rete: {completed}/{total}")
+        return GLib.SOURCE_REMOVE
+
+    def _finish_network_scan(self, result: ScanResult | None, error: str | None) -> bool:
+        self.scan_button.set_sensitive(True)
+        self.scan_progress.set_visible(False)
+        if error:
+            self._show_error("Scansione non riuscita", error)
+        elif result is not None:
+            self._show_scan_results(result)
+        return GLib.SOURCE_REMOVE
+
+    def _show_scan_results(self, result: ScanResult) -> None:
+        existing_macs = {computer.mac for computer in self.database.list_computers()}
+        available = [host for host in result.hosts if host.mac not in existing_macs]
+        if not available:
+            self.toasts.add_toast(
+                Adw.Toast(title=f"Nessun nuovo dispositivo trovato in {result.local_network.network}")
+            )
+            self._check_statuses_async(self.database.list_computers())
+            return
+
+        dialog = Gtk.Dialog(title="Dispositivi trovati", transient_for=self, modal=True)
+        dialog.set_default_size(620, 520)
+        dialog.add_button("Annulla", Gtk.ResponseType.CANCEL)
+        import_button = dialog.add_button("Importa selezionati", Gtk.ResponseType.ACCEPT)
+        import_button.add_css_class("suggested-action")
+
+        box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL,
+            spacing=12,
+            margin_top=18,
+            margin_bottom=18,
+            margin_start=18,
+            margin_end=18,
+        )
+        box.append(
+            Gtk.Label(
+                label=f"Rete {result.local_network.network} · {len(available)} nuovi dispositivi",
+                xalign=0,
+            )
+        )
+        discovered_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
+        discovered_list.add_css_class("boxed-list")
+        choices: list[tuple[Gtk.CheckButton, DiscoveredHost]] = []
+        for host in available:
+            check = Gtk.CheckButton(active=True)
+            row = Adw.ActionRow(title=host.hostname or host.ipv4, subtitle=host.mac)
+            row.add_prefix(check)
+            discovered_list.append(row)
+            choices.append((check, host))
+
+        scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
+        scroller.set_child(discovered_list)
+        box.append(scroller)
+        dialog.get_content_area().append(box)
+
+        def handle_response(current_dialog: Gtk.Dialog, response: int) -> None:
+            if response != Gtk.ResponseType.ACCEPT:
+                current_dialog.destroy()
+                return
+            imported = 0
+            for check, host in choices:
+                if not check.get_active():
+                    continue
+                try:
+                    self.database.add_computer(
+                        Computer(
+                            name=host.hostname or host.ipv4,
+                            hostname=host.hostname,
+                            ipv4=host.ipv4,
+                            mac=host.mac,
+                            broadcast=str(result.local_network.network.broadcast_address),
+                        )
+                    )
+                except sqlite3.IntegrityError:
+                    continue
+                imported += 1
+            current_dialog.destroy()
+            self._refresh_computers()
+            self.toasts.add_toast(Adw.Toast(title=f"{imported} dispositivi importati"))
+
+        dialog.connect("response", handle_response)
+        dialog.present()
 
     def _edit_selected(self, *_args: object) -> None:
         selected = self._selected_computers()
@@ -307,6 +484,11 @@ class MainWindow(Adw.ApplicationWindow):
         else:
             label = computers[0].name if len(computers) == 1 else f"{sent} computer"
             self.toasts.add_toast(Adw.Toast(title=f"Magic packet inviato a {label}"))
+        GLib.timeout_add_seconds(5, self._refresh_status_after_wake)
+
+    def _refresh_status_after_wake(self) -> bool:
+        self._check_statuses_async(self.database.list_computers())
+        return GLib.SOURCE_REMOVE
 
     def _show_error(self, heading: str, body: str) -> None:
         dialog = Adw.MessageDialog(transient_for=self, heading=heading, body=body)

@@ -11,6 +11,8 @@ fi
 sudo apt-get update
 sudo apt-get install -y \
   git \
+  iproute2 \
+  iputils-ping \
   python3 \
   python3-gi \
   python3-pip \
