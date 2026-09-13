@@ -1,84 +1,96 @@
 # Wake on LAN for Linux
 
-A simple, modern Wake-on-LAN manager designed for Ubuntu and other Linux desktops.
+[![Build](https://github.com/Hyperboreus85/wake-on-lan-for-linux/actions/workflows/build.yml/badge.svg)](https://github.com/Hyperboreus85/wake-on-lan-for-linux/actions)
+[![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange.svg)](https://github.com/Hyperboreus85/wake-on-lan-for-linux)
 
-The project is currently in early development. Version 0.5 includes a GTK 4/Libadwaita
-interface, a local SQLite device list, device editing and deletion, toggleable multiple
-selection, local-network discovery, online indicators, appearance settings, translations,
-complete portable backups, and Wake-on-LAN packet delivery.
+A modern GTK 4 / Libadwaita desktop application for discovering, organizing, monitoring, and waking computers on a local network.
 
-Bulk wake operations are deliberately protected by three consecutive confirmation
-dialogs. The final dialog shows the exact number of affected computers, helping prevent
-accidental mass wake-ups.
+![Wake on LAN for Linux](docs/featured-banner.png)
 
-## Current features
+## What it does
+
+Wake on LAN for Linux keeps your network computers in one clear, searchable list. Add devices manually or discover them on the local IPv4 subnet, inspect their current status, and wake one or many machines with a single action.
+
+The application is designed for Ubuntu and other Linux desktops, with a native dark/light interface, Italian and English translations, and portable backups for moving your setup to another computer.
+
+## Features
 
 - Add, edit, and remove computers.
-- Store IPv4, MAC, broadcast, UDP port, vendor, model, serial number, BIOS, group, and notes.
-- Wake one or several selected computers.
-- Wake all configured computers with three-step confirmation.
-- Scan every address in the detected local IPv4 subnet and choose which devices to import.
-- Resolve hostnames during discovery when local DNS, mDNS, or `/etc/hosts` provides them.
-- Try reverse DNS, Avahi/mDNS, and NetBIOS fallbacks when resolving hostnames.
+- Store IPv4 address, MAC address, broadcast address, UDP port, vendor, model, serial number, BIOS, group, and notes.
+- Wake one computer, several selected computers, or the entire list.
+- Protect bulk wake operations with three consecutive confirmation dialogs.
+- Scan the detected local IPv4 subnet and choose which discovered devices to import.
+- Resolve hostnames through local DNS, mDNS, `/etc/hosts`, Avahi, and NetBIOS fallbacks.
+- Check and display device status with clear LED indicators.
 - Sort saved computers by the numeric value of their IPv4 address.
-- Display IP, name/hostname, MAC address, and status in aligned horizontal columns.
-- Show a status LED for each saved device: yellow while checking, green online, red offline.
-- Choose the system, light, or dark theme and one of five accent colors.
-- Use the interface in Italian or English and install additional gettext `.mo` catalogs.
-- Export computers, all their fields, preferences, and custom translations to one JSON file.
-- Import a backup on another installation, merging computers by MAC address without duplicates.
-- Install an application-menu launcher with a dedicated icon during Ubuntu bootstrap.
-- Validate and normalize common MAC address formats.
-- Keep application data outside the source directory in a local SQLite database.
+- Choose system, light, or dark theme plus five accent colors.
+- Use the interface in Italian or English.
+- Export and import complete portable backups, including devices, preferences, column widths, and custom translations.
+- Merge imported devices by normalized MAC address without creating duplicates.
+- Normalize common MAC address formats.
+- Keep application data in the XDG data directory, outside the source tree.
 
-## Ubuntu development setup
+## Screenshots
 
-From the project directory:
+### Computer list
+
+![Computer list](docs/screenshots/computer-list.png)
+
+### Settings and appearance
+
+![Settings](docs/screenshots/settings.png)
+
+### Empty state
+
+![Empty state](docs/screenshots/empty-state.png)
+
+## Installation
+
+### Ubuntu development setup
+
+Clone the project and run the bootstrap script:
 
 ```bash
+git clone https://github.com/Hyperboreus85/wake-on-lan-for-linux.git
+cd wake-on-lan-for-linux
 ./scripts/bootstrap-ubuntu.sh
 ./run.sh
 ```
 
-The bootstrap script installs the Ubuntu packages required by GTK, hostname discovery,
-compiles translations,
-creates a Python virtual environment, and installs a launcher in the current user's
-application menu. The application stores user data under the XDG data directory, normally
-`~/.local/share/wake-on-lan-for-linux/wol-linux.db`.
+The bootstrap script installs the packages required by GTK, networking and hostname discovery, compiles translations, creates a Python virtual environment, and installs the application launcher.
 
-If the launcher is not visible immediately, log out and back in once. You can reinstall it
-without repeating the full bootstrap:
+### Snap package
+
+The repository includes a strict-confinement Snap recipe in `snap/snapcraft.yaml`. Pushes to `main` build a test package through GitHub Actions; the resulting `.snap` file is published as a workflow artifact.
+
+When the Snap Store release is available, install it with:
 
 ```bash
-./scripts/install-desktop-entry.sh
+sudo snap install wake-on-lan-for-linux
 ```
 
-The launcher installer also refreshes the local Hicolor icon cache so updated application
-icons are picked up by GNOME without reinstalling the application.
+For testing an unreleased edge build:
+
+```bash
+sudo snap install wake-on-lan-for-linux --edge
+```
 
 ## Backup and transfer
 
-Open **Settings → Backup and transfer → Export complete backup** to create a portable JSON
-file. Importing it on another Ubuntu PC restores appearance preferences and saved devices.
-Existing devices with the same normalized MAC address are updated; unrelated local devices
-are kept. Any user-installed translation catalogs are embedded in the same backup.
+Open **Settings → Backup and transfer** to export a complete portable backup. The backup can contain:
 
-Treat a backup as private data: it can contain IP addresses, MAC addresses, serial numbers,
-BIOS information, and notes entered by the user.
+- saved computers and network addresses;
+- appearance, theme, font, and column-width settings;
+- language and translation catalogs.
 
-## Translations
+The JSON backup is readable and editable. The encrypted `.wolbackup` format protects the same data with Scrypt and AES-256-GCM.
 
-Italian is the source language and English is bundled. Additional translations use GNU
-gettext `.mo` catalogs. Name a catalog after its language code, for example `fr.mo` or
-`de_DE.mo`, and import it from Settings. Developers can rebuild bundled catalogs with:
-
-```bash
-./scripts/compile-translations.sh
-```
+Treat backups as private data: they may contain IP addresses, MAC addresses, serial numbers, BIOS information, and notes.
 
 ## Working from `/opt`
 
-To create a user-owned development directory and copy this checkout into it:
+To install this checkout as a user-owned development copy:
 
 ```bash
 ./scripts/install-worktree-to-opt.sh
@@ -86,29 +98,32 @@ cd /opt/wake-on-lan-for-linux
 ./scripts/bootstrap-ubuntu.sh
 ```
 
-The `/opt` helper uses `sudo` only for creating the directory and changing its owner.
-Application commands should not be run with `sudo`.
+The helper uses `sudo` only when creating the directory and assigning its ownership. Do not run the application itself with `sudo`.
+
+## Translations
+
+Italian is the source language and English is bundled. Additional GNU gettext `.mo` catalogs can be imported from **Settings**.
+
+Developers can rebuild the bundled catalogs with:
+
+```bash
+./scripts/compile-translations.sh
+```
 
 ## Tests
+
+Run the complete test suite with:
 
 ```bash
 ./scripts/test.sh
 ```
 
-## Snap package
+## Project status
 
-The repository contains a strict-confinement Snap recipe in `snap/snapcraft.yaml`.
-Every push to `main` builds a test Snap through GitHub Actions; the resulting `.snap`
-file is available as a workflow artifact. Once a release is ready, the same artifact
-can be uploaded to the Snap Store and installed with:
+Wake on LAN for Linux is under active development. The current 0.5 release focuses on reliable device management, local-network discovery, complete backup and restore, appearance customization, translations, and Snap packaging.
 
-```bash
-sudo snap install wake-on-lan-for-linux --edge
-```
-
-The package is marked `stable` and is ready for publication to the Snap Store once the
-Store name is reserved and the publisher credentials are configured.
+Bug reports and feature requests are welcome in [GitHub Issues](https://github.com/Hyperboreus85/wake-on-lan-for-linux/issues).
 
 ## License
 
-GPL-3.0-or-later.
+This project is licensed under the [GNU General Public License v3.0 or later](LICENSE).
