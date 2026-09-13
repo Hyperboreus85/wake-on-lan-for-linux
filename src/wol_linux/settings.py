@@ -8,7 +8,14 @@ from pathlib import Path
 
 THEMES = ("system", "light", "dark")
 ACCENTS = ("ubuntu", "blue", "green", "purple", "red")
-PALETTE_KEYS = ("accent", "button", "text", "background")
+PALETTE_KEYS = (
+    "accent",
+    "button",
+    "menu_text",
+    "list_text",
+    "background_primary",
+    "background_secondary",
+)
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 COLUMN_WIDTH_DEFAULTS = {
     "select": 8,
@@ -40,6 +47,7 @@ class AppSettings:
     language: str = "en"
     custom_colors: dict[str, str] = field(default_factory=dict)
     font_family: str = ""
+    font_size: int = 0
     column_widths: dict[str, int] = field(default_factory=lambda: dict(COLUMN_WIDTH_DEFAULTS))
 
     @classmethod
@@ -55,8 +63,29 @@ class AppSettings:
             for key, value in raw_colors.items()
             if key in PALETTE_KEYS and isinstance(value, str) and HEX_COLOR.fullmatch(value)
         } if isinstance(raw_colors, dict) else {}
+        if isinstance(raw_colors, dict):
+            if (
+                "text" in raw_colors
+                and isinstance(raw_colors["text"], str)
+                and HEX_COLOR.fullmatch(raw_colors["text"])
+                and "menu_text" not in custom_colors
+            ):
+                custom_colors["menu_text"] = str(raw_colors["text"]).upper()
+                custom_colors["list_text"] = str(raw_colors["text"]).upper()
+            if (
+                "background" in raw_colors
+                and isinstance(raw_colors["background"], str)
+                and HEX_COLOR.fullmatch(raw_colors["background"])
+                and "background_primary" not in custom_colors
+            ):
+                custom_colors["background_primary"] = str(raw_colors["background"]).upper()
+                custom_colors["background_secondary"] = str(raw_colors["background"]).upper()
         raw_font = payload.get("font_family", "")
         font_family = str(raw_font).strip() if isinstance(raw_font, str) else ""
+        try:
+            font_size = max(0, min(32, int(payload.get("font_size", 0))))
+        except (TypeError, ValueError):
+            font_size = 0
         raw_widths = payload.get("column_widths", {})
         column_widths = dict(COLUMN_WIDTH_DEFAULTS)
         if isinstance(raw_widths, dict):
@@ -72,6 +101,7 @@ class AppSettings:
             language=str(payload.get("language", "en")),
             custom_colors=custom_colors,
             font_family=font_family,
+            font_size=font_size,
             column_widths=column_widths,
         )
 

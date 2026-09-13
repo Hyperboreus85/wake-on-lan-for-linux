@@ -12,7 +12,7 @@ from ..fonts import install_font
 from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
 from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
-from ..settings import ACCENTS, COLUMN_WIDTH_DEFAULTS, THEMES, AppSettings
+from ..settings import COLUMN_WIDTH_DEFAULTS, THEMES, AppSettings
 from ..wol import wake
 
 
@@ -123,8 +123,8 @@ class MainWindow(Adw.ApplicationWindow):
         page = Adw.PreferencesPage()
         appearance_group = Adw.PreferencesGroup(title=_("Aspetto"))
         palette_group = Adw.PreferencesGroup(
-            title=_("Palette personalizzata"),
-            description=_("Scegli i colori RGB per accenti, pulsanti, testo e sfondo"),
+            title=_("Colori interfaccia"),
+            description=_("Personalizza separatamente menu, lista dati, pulsanti e sfondi"),
         )
         font_group = Adw.PreferencesGroup(
             title=_("Font"),
@@ -151,31 +151,30 @@ class MainWindow(Adw.ApplicationWindow):
         )
         appearance_group.add(theme_row)
 
-        accent_values = list(ACCENTS)
-        accent_row = Adw.ComboRow(
-            title=_("Colore principale"),
-            model=Gtk.StringList.new(
-                [_("Arancione Ubuntu"), _("Blu"), _("Verde"), _("Viola"), _("Rosso")]
-            ),
-            selected=accent_values.index(self.settings.accent),
-        )
-        appearance_group.add(accent_row)
-
         palette_buttons: dict[str, Gtk.ColorDialogButton] = {}
+        reset_requested = [False]
         palette_defaults = {
             "accent": self.settings.custom_colors.get("accent", "#E95420"),
             "button": self.settings.custom_colors.get("button", "#E95420"),
-            "text": self.settings.custom_colors.get("text", "#FFFFFF"),
-            "background": self.settings.custom_colors.get("background", "#2D2D2D"),
+            "menu_text": self.settings.custom_colors.get("menu_text", "#FFFFFF"),
+            "list_text": self.settings.custom_colors.get("list_text", "#FFFFFF"),
+            "background_primary": self.settings.custom_colors.get(
+                "background_primary", "#2D2D2D"
+            ),
+            "background_secondary": self.settings.custom_colors.get(
+                "background_secondary", "#383838"
+            ),
         }
         palette_labels = {
             "accent": _("Colore accento"),
             "button": _("Colore pulsanti"),
-            "text": _("Colore testo"),
-            "background": _("Colore sfondo"),
+            "menu_text": _("Colore menu"),
+            "list_text": _("Colore lista dati"),
+            "background_primary": _("Sfondo principale"),
+            "background_secondary": _("Sfondo lista dati"),
         }
         changed_palette: set[str] = set()
-        for key in ("accent", "button", "text", "background"):
+        for key in palette_labels:
             color_row = Adw.ActionRow(title=palette_labels[key])
             color_button = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
             rgba = Gdk.RGBA()
@@ -201,6 +200,55 @@ class MainWindow(Adw.ApplicationWindow):
         )
         font_row.add_suffix(font_button)
         font_group.add(font_row)
+        font_size_row = Adw.ActionRow(
+            title=_("Dimensione font"),
+            subtitle=_("0 usa la dimensione predefinita del sistema"),
+        )
+        font_size_spin = Gtk.SpinButton(
+            adjustment=Gtk.Adjustment(
+                value=self.settings.font_size,
+                lower=0,
+                upper=32,
+                step_increment=1,
+                page_increment=2,
+            ),
+            numeric=True,
+            width_chars=4,
+        )
+        font_size_spin.set_valign(Gtk.Align.CENTER)
+        font_size_row.add_suffix(font_size_spin)
+        font_group.add(font_size_row)
+
+        reset_row = Adw.ActionRow(
+            title=_("Ripristina impostazioni visive"),
+            subtitle=_("Torna al tema scuro di base e rimuove colori e font personalizzati"),
+        )
+        reset_button = Gtk.Button(label=_("Ripristina"), valign=Gtk.Align.CENTER)
+        reset_button.add_css_class("destructive-action")
+        reset_row.add_suffix(reset_button)
+        appearance_group.add(reset_row)
+
+        def reset_visuals(*_args: object) -> None:
+            reset_requested[0] = True
+            theme_row.set_selected(theme_values.index("dark"))
+            defaults = {
+                "accent": "#E95420",
+                "button": "#E95420",
+                "menu_text": "#FFFFFF",
+                "list_text": "#FFFFFF",
+                "background_primary": "#2D2D2D",
+                "background_secondary": "#383838",
+            }
+            for key, value in defaults.items():
+                rgba = Gdk.RGBA()
+                rgba.parse(value)
+                palette_buttons[key].set_rgba(rgba)
+            changed_palette.clear()
+            pending_font[0] = ""
+            font_row.set_subtitle(_("Predefinito di sistema"))
+            font_size_spin.set_value(0)
+
+        reset_button.connect("clicked", reset_visuals)
 
         languages = available_languages()
         language_codes = [code for code, _label in languages]
@@ -252,15 +300,20 @@ class MainWindow(Adw.ApplicationWindow):
                 return
             old_language = self.settings.language
             self.settings.theme = theme_values[theme_row.get_selected()]
-            self.settings.accent = accent_values[accent_row.get_selected()]
+            if reset_requested[0]:
+                self.settings.accent = "ubuntu"
             self.settings.language = language_codes[language_row.get_selected()]
-            self.settings.custom_colors.update(
-                {
-                    key: self._rgba_to_hex(palette_buttons[key].get_rgba())
-                    for key in changed_palette
-                }
-            )
+            if reset_requested[0]:
+                self.settings.custom_colors = {}
+            else:
+                self.settings.custom_colors.update(
+                    {
+                        key: self._rgba_to_hex(palette_buttons[key].get_rgba())
+                        for key in changed_palette
+                    }
+                )
             self.settings.font_family = pending_font[0]
+            self.settings.font_size = int(font_size_spin.get_value())
             self._apply_column_widths()
             self.settings.save()
             apply_appearance(self.settings)

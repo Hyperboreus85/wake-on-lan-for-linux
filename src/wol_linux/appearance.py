@@ -39,19 +39,23 @@ def apply_appearance(settings: AppSettings) -> None:
         Gtk.StyleContext.remove_provider_for_display(display, _provider)
     color = settings.custom_colors.get("accent", ACCENT_COLORS[settings.accent])
     button_color = settings.custom_colors.get("button", color)
-    text_color = settings.custom_colors.get("text", "#FFFFFF")
-    background_color = settings.custom_colors.get("background", "#00000000")
+    menu_text_color = settings.custom_colors.get("menu_text", "#FFFFFF")
+    list_text_color = settings.custom_colors.get("list_text", "#FFFFFF")
+    primary_background = settings.custom_colors.get("background_primary", "#00000000")
+    secondary_background = settings.custom_colors.get("background_secondary", "#00000000")
     hover_color = ACCENT_HOVER_COLORS[settings.accent]
     _provider = Gtk.CssProvider()
     font_family = settings.font_family.replace("\\", "\\\\").replace('"', '\\"')
-    css = f"""
+    font_size = f"* {{ font-size: {settings.font_size}pt; }}" if settings.font_size else ""
+    css = (
+        f"""
         @define-color accent_color {color};
         @define-color accent_bg_color {color};
-        @define-color accent_fg_color {text_color};
+        @define-color accent_fg_color {menu_text_color};
         @define-color theme_selected_bg_color {color};
-        @define-color theme_selected_fg_color {text_color};
-        @define-color theme_fg_color {text_color};
-        @define-color window_bg_color {background_color};
+        @define-color theme_selected_fg_color {menu_text_color};
+        @define-color theme_fg_color {menu_text_color};
+        @define-color window_bg_color {primary_background};
 
         /* Keep Libadwaita action buttons in sync with the selected accent. */
         button.suggested-action,
@@ -60,7 +64,7 @@ def apply_appearance(settings: AppSettings) -> None:
         .suggested-action > button,
         .suggested-action button {{
             background-color: {button_color};
-            color: {text_color};
+            color: {menu_text_color};
         }}
         button.suggested-action:hover,
         .suggested-action > button:hover,
@@ -72,7 +76,15 @@ def apply_appearance(settings: AppSettings) -> None:
             opacity: 0.45;
         }}
         window, .background {{
-            color: {text_color};
+            color: {menu_text_color};
+            background-color: {primary_background};
+        }}
+        headerbar, popover, menu, .navigation-sidebar {{
+            color: {menu_text_color};
+        }}
+        .boxed-list, .boxed-list row, .table-cell {{
+            color: {list_text_color};
+            background-color: {secondary_background};
         }}
         .table-cell {{
             border-right: 1px solid alpha(currentColor, 0.20);
@@ -80,8 +92,10 @@ def apply_appearance(settings: AppSettings) -> None:
         .table-fixed-cell {{
             border-right: 1px solid alpha(currentColor, 0.20);
         }}
-        """ \
+        """
         + (f'* {{ font-family: "{font_family}"; }}' if font_family else "")
+        + font_size
+    )
     _provider.load_from_data(css.encode())
     Gtk.StyleContext.add_provider_for_display(
         display,
