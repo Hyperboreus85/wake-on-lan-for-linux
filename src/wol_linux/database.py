@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import os
 import sqlite3
 from contextlib import closing
@@ -119,8 +120,19 @@ class Database:
 
     def list_computers(self) -> list[Computer]:
         with closing(self.connect()) as connection:
-            rows = connection.execute("SELECT * FROM computers ORDER BY name COLLATE NOCASE").fetchall()
-        return [
+            rows = connection.execute("SELECT * FROM computers").fetchall()
+        computers = [
             Computer(**{field: row[field] for field in Computer.__dataclass_fields__})
             for row in rows
         ]
+        return sorted(computers, key=self._computer_sort_key)
+
+    @staticmethod
+    def _computer_sort_key(computer: Computer) -> tuple[int, int, str]:
+        try:
+            address = ipaddress.ip_address(computer.ipv4)
+        except ValueError:
+            return (1, 0, computer.name.casefold())
+        if not isinstance(address, ipaddress.IPv4Address):
+            return (1, 0, computer.name.casefold())
+        return (0, int(address), computer.name.casefold())

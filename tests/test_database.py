@@ -53,3 +53,21 @@ class DatabaseTests(unittest.TestCase):
 
             self.assertEqual(database.delete_computers([first, second]), 2)
             self.assertEqual(database.list_computers(), [])
+
+    def test_computers_are_sorted_by_numeric_ipv4(self) -> None:
+        with TemporaryDirectory() as directory:
+            database = Database(f"{directory}/test.db")
+            database.add_computer(
+                Computer(name="Centoventi", mac="00:11:22:33:44:01", ipv4="192.168.10.120")
+            )
+            database.add_computer(
+                Computer(name="Undici", mac="00:11:22:33:44:02", ipv4="192.168.10.11")
+            )
+            database.add_computer(
+                Computer(name="Cinque", mac="00:11:22:33:44:03", ipv4="192.168.10.5")
+            )
+
+            self.assertEqual(
+                [computer.ipv4 for computer in database.list_computers()],
+                ["192.168.10.5", "192.168.10.11", "192.168.10.120"],
+            )

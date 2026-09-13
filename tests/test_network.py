@@ -1,7 +1,7 @@
 import ipaddress
 import unittest
 
-from wol_linux.network import parse_neighbours, parse_routes
+from wol_linux.network import parse_hostname, parse_neighbours, parse_routes
 
 
 class NetworkParsingTests(unittest.TestCase):
@@ -29,3 +29,12 @@ class NetworkParsingTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].ipv4, "192.168.10.2")
         self.assertEqual(result[0].mac, "AA:BB:CC:DD:EE:FF")
+
+    def test_parse_hostname_from_getent_output(self) -> None:
+        self.assertEqual(
+            parse_hostname("192.168.10.7 pve1.lan pve1\n", "192.168.10.7"),
+            "pve1.lan",
+        )
+
+    def test_parse_hostname_returns_empty_when_unknown(self) -> None:
+        self.assertEqual(parse_hostname("", "192.168.10.7"), "")

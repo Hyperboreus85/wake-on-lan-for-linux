@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 import threading
 
-from gi.repository import Adw, GLib, Gtk
+from gi.repository import Adw, GLib, Gtk, Pango
 
 from ..database import Database
 from ..models import Computer
@@ -32,7 +32,7 @@ class MainWindow(Adw.ApplicationWindow):
         header.pack_start(self.delete_button)
 
         self.scan_button = Gtk.Button(
-            icon_name="network-workgroup-symbolic",
+            icon_name="system-search-symbolic",
             tooltip_text="Scansiona la rete locale",
         )
         self.scan_button.connect("clicked", self._start_network_scan)
@@ -69,12 +69,19 @@ class MainWindow(Adw.ApplicationWindow):
         self.computer_list.add_css_class("boxed-list")
         self.computer_list.connect("row-activated", self._toggle_row)
 
-        list_scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER)
+        list_scroller = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.NEVER,
+            vexpand=True,
+        )
         list_scroller.set_child(self.computer_list)
+
+        table_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        table_box.append(self._build_table_header())
+        table_box.append(list_scroller)
 
         self.stack = Gtk.Stack()
         self.stack.add_named(self.empty_page, "empty")
-        self.stack.add_named(list_scroller, "list")
+        self.stack.add_named(table_box, "list")
 
         self.toasts = Adw.ToastOverlay(child=self.stack)
         toolbar.set_content(self.toasts)
@@ -192,23 +199,28 @@ class MainWindow(Adw.ApplicationWindow):
 
         computers = self.database.list_computers()
         for computer in computers:
-            subtitle_parts = [value for value in (computer.ipv4, computer.mac) if value]
-            row = Adw.ActionRow(
-                title=computer.name,
-                subtitle="  ·  ".join(subtitle_parts),
-                activatable=True,
-            )
+            row = Gtk.ListBoxRow(activatable=True)
             row.computer = computer
             row.check_button = Gtk.CheckButton(tooltip_text="Seleziona o deseleziona")
             row.check_button.connect("toggled", self._on_selection_changed)
-            row.add_prefix(row.check_button)
-            row.add_prefix(Gtk.Image.new_from_icon_name("computer-symbolic"))
             row.status_icon = Gtk.Image(
                 icon_name="media-record-symbolic",
                 tooltip_text="Stato in verifica",
             )
             row.status_icon.add_css_class("warning")
-            row.add_suffix(row.status_icon)
+
+            hostname = computer.hostname.strip()
+            display_name = computer.name
+            if hostname and hostname.casefold() != computer.name.casefold():
+                display_name = f"{computer.name} · {hostname}"
+
+            grid = self._build_table_grid()
+            grid.attach(row.check_button, 0, 0, 1, 1)
+            grid.attach(self._table_label(computer.ipv4 or "—", 16), 1, 0, 1, 1)
+            grid.attach(self._table_label(display_name, 28, expand=True), 2, 0, 1, 1)
+            grid.attach(self._table_label(computer.mac, 20), 3, 0, 1, 1)
+            grid.attach(row.status_icon, 4, 0, 1, 1)
+            row.set_child(grid)
             self.computer_list.append(row)
 
         self.stack.set_visible_child_name("list" if computers else "empty")
@@ -219,16 +231,50 @@ class MainWindow(Adw.ApplicationWindow):
     def _selected_computers(self) -> list[Computer]:
         return [row.computer for row in self._computer_rows() if row.check_button.get_active()]
 
-    def _computer_rows(self) -> list[Adw.ActionRow]:
-        rows: list[Adw.ActionRow] = []
+    def _computer_rows(self) -> list[Gtk.ListBoxRow]:
+        rows: list[Gtk.ListBoxRow] = []
         child = self.computer_list.get_first_child()
         while child is not None:
             rows.append(child)
             child = child.get_next_sibling()
         return rows
 
-    def _toggle_row(self, _list_box: Gtk.ListBox, row: Adw.ActionRow) -> None:
+    def _toggle_row(self, _list_box: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
         row.check_button.set_active(not row.check_button.get_active())
+
+    @staticmethod
+    def _build_table_grid() -> Gtk.Grid:
+        return Gtk.Grid(
+            column_spacing=18,
+            margin_top=10,
+            margin_bottom=10,
+            margin_start=12,
+            margin_end=12,
+        )
+
+    @staticmethod
+    def _table_label(text: str, width: int, expand: bool = False) -> Gtk.Label:
+        label = Gtk.Label(label=text, xalign=0, hexpand=expand)
+        label.set_width_chars(width)
+        label.set_max_width_chars(width)
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        return label
+
+    def _build_table_header(self) -> Gtk.Grid:
+        grid = self._build_table_grid()
+        grid.set_margin_start(30)
+        grid.set_margin_end(30)
+        grid.attach(Gtk.Label(width_request=16), 0, 0, 1, 1)
+        for column, text, width, expand in (
+            (1, "Indirizzo IP", 16, False),
+            (2, "Nome / hostname", 28, True),
+            (3, "Indirizzo MAC", 20, False),
+            (4, "Stato", 6, False),
+        ):
+            label = self._table_label(text, width, expand)
+            label.add_css_class("heading")
+            grid.attach(label, column, 0, 1, 1)
+        return grid
 
     def _on_selection_changed(self, *_args: object) -> None:
         count = len(self._selected_computers())
@@ -339,15 +385,38 @@ class MainWindow(Adw.ApplicationWindow):
                 xalign=0,
             )
         )
+        scan_header = self._build_table_grid()
+        scan_header.attach(Gtk.Label(width_request=24), 0, 0, 1, 1)
+        for column, text, width, expand in (
+            (1, "Indirizzo IP", 16, False),
+            (2, "Hostname", 24, True),
+            (3, "Indirizzo MAC", 20, False),
+        ):
+            label = self._table_label(text, width, expand)
+            label.add_css_class("heading")
+            scan_header.attach(label, column, 0, 1, 1)
+        box.append(scan_header)
+
         discovered_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE)
         discovered_list.add_css_class("boxed-list")
         choices: list[tuple[Gtk.CheckButton, DiscoveredHost]] = []
         for host in available:
             check = Gtk.CheckButton(active=True)
-            row = Adw.ActionRow(title=host.hostname or host.ipv4, subtitle=host.mac)
-            row.add_prefix(check)
+            row = Gtk.ListBoxRow(activatable=True)
+            row.check_button = check
+            grid = self._build_table_grid()
+            grid.attach(check, 0, 0, 1, 1)
+            grid.attach(self._table_label(host.ipv4, 16), 1, 0, 1, 1)
+            grid.attach(self._table_label(host.hostname or "—", 24, expand=True), 2, 0, 1, 1)
+            grid.attach(self._table_label(host.mac, 20), 3, 0, 1, 1)
+            row.set_child(grid)
             discovered_list.append(row)
             choices.append((check, host))
+
+        def toggle_discovered(_list: Gtk.ListBox, row: Gtk.ListBoxRow) -> None:
+            row.check_button.set_active(not row.check_button.get_active())
+
+        discovered_list.connect("row-activated", toggle_discovered)
 
         scroller = Gtk.ScrolledWindow(hscrollbar_policy=Gtk.PolicyType.NEVER, vexpand=True)
         scroller.set_child(discovered_list)

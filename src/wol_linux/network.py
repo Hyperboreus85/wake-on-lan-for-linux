@@ -87,6 +87,30 @@ def parse_neighbours(payload: str, network: ipaddress.IPv4Network) -> list[Disco
     return sorted(found.values(), key=lambda item: ipaddress.ip_address(item.ipv4))
 
 
+def parse_hostname(payload: str, address: str) -> str:
+    for line in payload.splitlines():
+        fields = line.split()
+        if len(fields) >= 2 and fields[0] == address:
+            hostname = fields[1].rstrip(".")
+            if hostname != address:
+                return hostname
+    return ""
+
+
+def resolve_hostname(address: str) -> str:
+    try:
+        process = subprocess.run(
+            ["getent", "hosts", address],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return parse_hostname(process.stdout, address)
+
+
 def detect_local_network() -> LocalNetwork:
     try:
         process = subprocess.run(
@@ -147,4 +171,10 @@ def scan_local_network(
     except (OSError, subprocess.SubprocessError) as exc:
         raise RuntimeError(f"Impossibile leggere i dispositivi rilevati: {exc}") from exc
     hosts = parse_neighbours(process.stdout, local_network.network)
-    return ScanResult(local_network=local_network, hosts=tuple(hosts))
+    with ThreadPoolExecutor(max_workers=min(16, max(1, len(hosts)))) as executor:
+        hostnames = list(executor.map(lambda host: resolve_hostname(host.ipv4), hosts))
+    resolved_hosts = tuple(
+        DiscoveredHost(ipv4=host.ipv4, mac=host.mac, hostname=hostname)
+        for host, hostname in zip(hosts, hostnames, strict=True)
+    )
+    return ScanResult(local_network=local_network, hosts=resolved_hosts)
