@@ -12,7 +12,7 @@ from ..database import Database
 from ..fonts import available_font_families, install_font, system_font_size
 from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
-from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
+from ..network import DiscoveredHost, ScanResult, check_host_status, scan_local_network
 from ..settings import COLUMN_WIDTH_DEFAULTS, THEMES, AppSettings
 from ..wol import wake
 
@@ -34,6 +34,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._active_group = ""
         self._group_values = [""]
         self._updating_group_filter = False
+        self._wake_status_checks_remaining = 0
         self.set_default_size(980, 620)
 
         header = Adw.HeaderBar()
@@ -1124,7 +1125,7 @@ class MainWindow(Adw.ApplicationWindow):
         def worker() -> None:
             for computer in computers:
                 address = computer.ipv4 or computer.hostname
-                status = ping_host(address)
+                status = check_host_status(address, computer.mac)
                 GLib.idle_add(self._apply_status, generation, computer.id, status)
 
         threading.Thread(target=worker, daemon=True).start()
@@ -1464,11 +1465,13 @@ class MainWindow(Adw.ApplicationWindow):
             self.toasts.add_toast(
                 Adw.Toast(title=_("Magic packet inviato a {label}").format(label=label))
             )
+        self._wake_status_checks_remaining = 6
         GLib.timeout_add_seconds(5, self._refresh_status_after_wake)
 
     def _refresh_status_after_wake(self) -> bool:
         self._check_statuses_async(self.database.list_computers())
-        return GLib.SOURCE_REMOVE
+        self._wake_status_checks_remaining -= 1
+        return self._wake_status_checks_remaining > 0
 
     def _show_error(self, heading: str, body: str) -> None:
         dialog = Adw.MessageDialog(transient_for=self, heading=heading, body=body)

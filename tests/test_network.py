@@ -3,6 +3,7 @@ import unittest
 
 from wol_linux.network import (
     parse_avahi_hostname,
+    parse_neighbour_status,
     parse_hostname,
     parse_nmblookup_hostname,
     parse_neighbours,
@@ -54,3 +55,19 @@ class NetworkParsingTests(unittest.TestCase):
     def test_parse_nmblookup_hostname(self) -> None:
         payload = "Looking up status of 192.168.10.7\nPVE1       <00> -         B <ACTIVE>\n"
         self.assertEqual(parse_nmblookup_hostname(payload, "192.168.10.7"), "PVE1")
+
+    def test_parse_neighbour_status_accepts_matching_active_mac(self) -> None:
+        payload = "192.168.10.7 dev enp3s0 lladdr aa:bb:cc:dd:ee:ff STALE\n"
+        self.assertTrue(
+            parse_neighbour_status(payload, "192.168.10.7", "AA-BB-CC-DD-EE-FF")
+        )
+
+    def test_parse_neighbour_status_rejects_failed_entry(self) -> None:
+        payload = "192.168.10.7 dev enp3s0 INCOMPLETE\n"
+        self.assertFalse(parse_neighbour_status(payload, "192.168.10.7"))
+
+    def test_parse_neighbour_status_ignores_other_macs(self) -> None:
+        payload = "192.168.10.7 dev enp3s0 lladdr aa:bb:cc:dd:ee:ff REACHABLE\n"
+        self.assertIsNone(
+            parse_neighbour_status(payload, "192.168.10.7", "00:11:22:33:44:55")
+        )

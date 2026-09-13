@@ -203,6 +203,80 @@ def ping_host(address: str, timeout: int = 1) -> bool | None:
     return process.returncode == 0
 
 
+def parse_neighbour_status(
+    payload: str,
+    address: str,
+    expected_mac: str = "",
+) -> bool | None:
+    """Determine whether the kernel neighbour table sees ``address`` online.
+
+    ARP/NDP entries are useful when a host firewall drops ICMP echo requests.
+    A matching MAC in any usable neighbour state is treated as reachable;
+    failed or incomplete entries are treated as unreachable.
+    """
+    active_states = {"REACHABLE", "STALE", "DELAY", "PROBE", "PERMANENT"}
+    failed_states = {"FAILED", "INCOMPLETE", "NOARP", "NONE"}
+    normalized_expected = ""
+    if expected_mac:
+        try:
+            normalized_expected = normalize_mac(expected_mac)
+        except ValueError:
+            return None
+
+    for line in payload.splitlines():
+        fields = line.split()
+        if not fields or fields[0] != address:
+            continue
+        mac = ""
+        if "lladdr" in fields:
+            mac_index = fields.index("lladdr") + 1
+            if mac_index < len(fields):
+                mac = fields[mac_index]
+        if normalized_expected:
+            try:
+                if normalize_mac(mac) != normalized_expected:
+                    continue
+            except ValueError:
+                continue
+        state = next(
+            (field.upper() for field in fields if field.upper() in active_states | failed_states),
+            "",
+        )
+        if state in active_states:
+            return True
+        if state in failed_states:
+            return False
+    return None
+
+
+def neighbour_host(address: str, expected_mac: str = "") -> bool | None:
+    """Read one host's kernel neighbour entry as an ICMP fallback."""
+    if not address.strip():
+        return None
+    try:
+        process = subprocess.run(
+            ["ip", "neigh", "show", address],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1.5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return parse_neighbour_status(process.stdout, address, expected_mac)
+
+
+def check_host_status(address: str, expected_mac: str = "") -> bool | None:
+    """Check reachability using ICMP first, then the neighbour table."""
+    status = ping_host(address)
+    if status is True:
+        return True
+    neighbour_status = neighbour_host(address, expected_mac)
+    if neighbour_status is not None:
+        return neighbour_status
+    return status
+
+
 def scan_local_network(
     progress: Callable[[int, int], None] | None = None,
 ) -> ScanResult:
