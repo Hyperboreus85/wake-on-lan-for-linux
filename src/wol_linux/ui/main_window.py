@@ -31,6 +31,9 @@ class MainWindow(Adw.ApplicationWindow):
         self._row_labels: dict[str, list[Gtk.Label]] = {}
         self._resize_starts: dict[str, int] = {}
         self._resize_active: dict[str, bool] = {}
+        self._active_group = ""
+        self._group_values = [""]
+        self._updating_group_filter = False
         self.set_default_size(980, 620)
 
         header = Adw.HeaderBar()
@@ -60,6 +63,13 @@ class MainWindow(Adw.ApplicationWindow):
         )
         settings_button.connect("clicked", self._show_preferences)
         header.pack_start(settings_button)
+
+        self._group_model = Gtk.StringList.new([_("Tutti i gruppi")])
+        self.group_filter = Gtk.DropDown(model=self._group_model, selected=0)
+        self.group_filter.set_tooltip_text(_("Filtra i computer per gruppo"))
+        self.group_filter.set_width_request(150)
+        self.group_filter.connect("notify::selected", self._on_group_filter_changed)
+        header.pack_start(self.group_filter)
 
         self.wake_button = Gtk.Button(label=_("Sveglia selezionati"))
         self.wake_button.add_css_class("suggested-action")
@@ -117,12 +127,22 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _show_preferences(self, *_args: object) -> None:
         dialog = Gtk.Dialog(title=_("Impostazioni"), transient_for=self, modal=True)
-        dialog.set_default_size(520, 520)
+        dialog.set_default_size(900, 760)
+        dialog.set_resizable(True)
         dialog.add_button(_("Annulla"), Gtk.ResponseType.CANCEL)
         apply_button = dialog.add_button(_("Applica"), Gtk.ResponseType.ACCEPT)
         apply_button.add_css_class("suggested-action")
 
-        page = Adw.PreferencesPage()
+        page = Gtk.Grid(
+            column_spacing=18,
+            row_spacing=18,
+            margin_top=18,
+            margin_bottom=18,
+            margin_start=18,
+            margin_end=18,
+            hexpand=True,
+            vexpand=True,
+        )
         appearance_group = Adw.PreferencesGroup(title=_("Aspetto"))
         palette_group = Adw.PreferencesGroup(
             title=_("Colori interfaccia"),
@@ -137,11 +157,11 @@ class MainWindow(Adw.ApplicationWindow):
             title=_("Backup e trasferimento"),
             description=_("Salva macchine e personalizzazioni in un unico file"),
         )
-        page.add(appearance_group)
-        page.add(palette_group)
-        page.add(font_group)
-        page.add(language_group)
-        page.add(backup_group)
+        page.attach(appearance_group, 0, 0, 1, 1)
+        page.attach(palette_group, 1, 0, 1, 1)
+        page.attach(font_group, 0, 1, 1, 1)
+        page.attach(language_group, 1, 1, 1, 1)
+        page.attach(backup_group, 0, 2, 2, 1)
 
         theme_values = list(THEMES)
         theme_row = Adw.ComboRow(
@@ -176,6 +196,7 @@ class MainWindow(Adw.ApplicationWindow):
             "background_secondary": _("Sfondo lista dati"),
         }
         changed_palette: set[str] = set()
+        palette_rows: list[Adw.ActionRow] = []
         for key in palette_labels:
             color_row = Adw.ActionRow(title=palette_labels[key])
             color_button = Gtk.ColorDialogButton(dialog=Gtk.ColorDialog())
@@ -187,8 +208,17 @@ class MainWindow(Adw.ApplicationWindow):
                 "notify::rgba", lambda *_args, palette_key=key: changed_palette.add(palette_key)
             )
             color_row.add_suffix(color_button)
-            palette_group.add(color_row)
+            palette_rows.append(color_row)
             palette_buttons[key] = color_button
+        palette_grid = Gtk.Grid(
+            column_spacing=12,
+            row_spacing=6,
+            column_homogeneous=True,
+        )
+        for index, color_row in enumerate(palette_rows):
+            color_row.set_hexpand(True)
+            palette_grid.attach(color_row, index % 2, index // 2, 1, 1)
+        palette_group.add(palette_grid)
 
         pending_font = [self.settings.font_family]
         font_values = [""] + available_font_families()
@@ -567,6 +597,15 @@ class MainWindow(Adw.ApplicationWindow):
         page.add(details_group)
 
         fields: dict[str, Adw.EntryRow] = {}
+        existing_groups = sorted(
+            {
+                item.group_name.strip()
+                for item in self.database.list_computers()
+                if item.group_name.strip()
+            },
+            key=str.casefold,
+        )
+        group_values = [""] + existing_groups
 
         def value(name: str, fallback: str = "") -> str:
             if computer is None:
@@ -597,6 +636,28 @@ class MainWindow(Adw.ApplicationWindow):
         add_field(details_group, "bios", _("BIOS"), value("bios"))
         add_field(details_group, "group_name", _("Gruppo"), value("group_name"))
         add_field(details_group, "notes", _("Note"), value("notes"))
+
+        group_picker = Adw.ComboRow(
+            title=_("Gruppo esistente"),
+            subtitle=_("Scegli un gruppo già usato oppure lascia vuoto per crearne uno nuovo"),
+            model=Gtk.StringList.new([_("Nessun gruppo")] + existing_groups),
+            selected=(
+                group_values.index(value("group_name"))
+                if value("group_name") in group_values
+                else 0
+            ),
+        )
+        details_group.add(group_picker)
+
+        def select_existing_group(*_args: object) -> None:
+            selected = group_picker.get_selected()
+            if selected == 0:
+                fields["group_name"].set_text("")
+                return
+            if 0 < selected < len(group_values):
+                fields["group_name"].set_text(group_values[selected])
+
+        group_picker.connect("notify::selected", select_existing_group)
         dialog.get_content_area().append(page)
 
         def handle_response(current_dialog: Gtk.Dialog, response: int) -> None:
@@ -651,7 +712,13 @@ class MainWindow(Adw.ApplicationWindow):
             self.computer_list.remove(child)
             child = next_child
 
-        computers = self.database.list_computers()
+        all_computers = self.database.list_computers()
+        self._refresh_group_filter(all_computers)
+        computers = (
+            all_computers
+            if not self._active_group
+            else [computer for computer in all_computers if computer.group_name == self._active_group]
+        )
         for computer in computers:
             row = Gtk.ListBoxRow(activatable=True)
             row.set_margin_start(0)
@@ -749,8 +816,48 @@ class MainWindow(Adw.ApplicationWindow):
 
         self.stack.set_visible_child_name("list" if computers else "empty")
         self.wake_all_button.set_sensitive(bool(computers))
+        self.wake_all_button.set_label(
+            _("Sveglia gruppo") if self._active_group else _("Sveglia tutti")
+        )
+        self.wake_all_button.set_tooltip_text(
+            _("Sveglia tutti i computer del gruppo selezionato")
+            if self._active_group
+            else _("Sveglia tutti i computer salvati")
+        )
         self._on_selection_changed()
         self._check_statuses_async(computers)
+
+    def _refresh_group_filter(self, computers: list[Computer]) -> None:
+        groups = sorted(
+            {computer.group_name.strip() for computer in computers if computer.group_name.strip()},
+            key=str.casefold,
+        )
+        values = [""] + groups
+        if self._active_group not in values:
+            self._active_group = ""
+        if values == self._group_values:
+            return
+        self._group_values = values
+        self._updating_group_filter = True
+        try:
+            self._group_model.splice(
+                0,
+                self._group_model.get_n_items(),
+                [_("Tutti i gruppi")] + groups,
+            )
+            self.group_filter.set_selected(values.index(self._active_group))
+        finally:
+            self._updating_group_filter = False
+
+    def _on_group_filter_changed(self, *_args: object) -> None:
+        if self._updating_group_filter:
+            return
+        selected = self.group_filter.get_selected()
+        if 0 <= selected < len(self._group_values):
+            self._active_group = self._group_values[selected]
+        else:
+            self._active_group = ""
+        self._refresh_computers()
 
     def _selected_computers(self) -> list[Computer]:
         return [row.computer for row in self._computer_rows() if row.check_button.get_active()]
@@ -1213,9 +1320,19 @@ class MainWindow(Adw.ApplicationWindow):
             self._confirm_bulk_wake(computers, _("i computer selezionati"))
 
     def _wake_all(self, *_args: object) -> None:
-        computers = self.database.list_computers()
+        all_computers = self.database.list_computers()
+        computers = (
+            all_computers
+            if not self._active_group
+            else [computer for computer in all_computers if computer.group_name == self._active_group]
+        )
         if computers:
-            self._confirm_bulk_wake(computers, _("tutti i computer"))
+            target = (
+                _("il gruppo {group}").format(group=self._active_group)
+                if self._active_group
+                else _("tutti i computer")
+            )
+            self._confirm_bulk_wake(computers, target)
 
     def _confirm_bulk_wake(self, computers: list[Computer], target: str, step: int = 1) -> None:
         count = len(computers)
