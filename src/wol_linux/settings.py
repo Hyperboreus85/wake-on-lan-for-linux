@@ -11,7 +11,7 @@ ACCENTS = ("ubuntu", "blue", "green", "purple", "red")
 PALETTE_KEYS = ("accent", "button", "text", "background")
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 COLUMN_WIDTH_DEFAULTS = {
-    "select": 4,
+    "select": 8,
     "ipv4": 16,
     "name": 28,
     "mac": 20,

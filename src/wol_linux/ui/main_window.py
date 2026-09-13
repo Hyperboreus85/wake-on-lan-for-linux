@@ -556,7 +556,8 @@ class MainWindow(Adw.ApplicationWindow):
                 display_name = f"{computer.name} · {hostname}"
 
             grid = self._build_table_grid()
-            grid.attach(row.check_button, 0, 0, 1, 1)
+            row.select_cell = self._fixed_widget_cell(row.check_button, "select")
+            grid.attach(row.select_cell, 0, 0, 1, 1)
             grid.attach(
                 self._table_label(
                     computer.ipv4 or "—", self._column_width("ipv4"), column_key="ipv4"
@@ -584,7 +585,8 @@ class MainWindow(Adw.ApplicationWindow):
                 1,
                 1,
             )
-            grid.attach(row.status_icon, 4, 0, 1, 1)
+            row.status_cell = self._fixed_widget_cell(row.status_icon, "status")
+            grid.attach(row.status_cell, 4, 0, 1, 1)
             details = (
                 computer.vendor,
                 computer.manufacturer,
@@ -658,6 +660,16 @@ class MainWindow(Adw.ApplicationWindow):
     def _cell_pixel_width(self, key: str) -> int:
         return self._column_width(key) * 8
 
+    def _fixed_widget_cell(self, widget: Gtk.Widget, key: str) -> Gtk.Box:
+        cell = Gtk.Box(
+            width_request=self._cell_pixel_width(key),
+            halign=Gtk.Align.FILL,
+            valign=Gtk.Align.CENTER,
+        )
+        cell.add_css_class("table-fixed-cell")
+        cell.append(widget)
+        return cell
+
     def _table_label(
         self,
         text: str,
@@ -686,8 +698,8 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _apply_column_widths(self) -> None:
         for row in self._computer_rows():
-            row.check_button.set_size_request(self._cell_pixel_width("select"), -1)
-            row.status_icon.set_size_request(self._cell_pixel_width("status"), -1)
+            row.select_cell.set_size_request(self._cell_pixel_width("select"), -1)
+            row.status_cell.set_size_request(self._cell_pixel_width("status"), -1)
         for key, labels in self._row_labels.items():
             width = self._column_width(key)
             for label in labels:
@@ -717,7 +729,8 @@ class MainWindow(Adw.ApplicationWindow):
         grid = self._build_table_grid()
         grid.set_margin_start(12)
         grid.set_margin_end(12)
-        select_header = Gtk.Label(width_request=self._cell_pixel_width("select"))
+        select_header = Gtk.Box(width_request=self._cell_pixel_width("select"))
+        select_header.add_css_class("table-fixed-cell")
         grid.attach(
             select_header,
             0,
