@@ -10,6 +10,22 @@ THEMES = ("system", "light", "dark")
 ACCENTS = ("ubuntu", "blue", "green", "purple", "red")
 PALETTE_KEYS = ("accent", "button", "text", "background")
 HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
+COLUMN_WIDTH_DEFAULTS = {
+    "select": 4,
+    "ipv4": 16,
+    "name": 28,
+    "mac": 20,
+    "status": 8,
+    "vendor": 22,
+    "manufacturer": 22,
+    "model": 20,
+    "serial_number": 20,
+    "bios": 18,
+    "group": 16,
+    "notes": 30,
+    "broadcast": 18,
+    "port": 10,
+}
 
 
 def default_settings_path() -> Path:
@@ -21,9 +37,10 @@ def default_settings_path() -> Path:
 class AppSettings:
     theme: str = "system"
     accent: str = "ubuntu"
-    language: str = "system"
+    language: str = "en"
     custom_colors: dict[str, str] = field(default_factory=dict)
     font_family: str = ""
+    column_widths: dict[str, int] = field(default_factory=lambda: dict(COLUMN_WIDTH_DEFAULTS))
 
     @classmethod
     def load(cls, path: str | Path | None = None) -> AppSettings:
@@ -40,12 +57,22 @@ class AppSettings:
         } if isinstance(raw_colors, dict) else {}
         raw_font = payload.get("font_family", "")
         font_family = str(raw_font).strip() if isinstance(raw_font, str) else ""
+        raw_widths = payload.get("column_widths", {})
+        column_widths = dict(COLUMN_WIDTH_DEFAULTS)
+        if isinstance(raw_widths, dict):
+            for key, value in raw_widths.items():
+                if key in column_widths:
+                    try:
+                        column_widths[key] = max(4, min(60, int(value)))
+                    except (TypeError, ValueError):
+                        continue
         return cls(
             theme=payload.get("theme") if payload.get("theme") in THEMES else "system",
             accent=payload.get("accent") if payload.get("accent") in ACCENTS else "ubuntu",
-            language=str(payload.get("language", "system")),
+            language=str(payload.get("language", "en")),
             custom_colors=custom_colors,
             font_family=font_family,
+            column_widths=column_widths,
         )
 
     def save(self, path: str | Path | None = None) -> None:

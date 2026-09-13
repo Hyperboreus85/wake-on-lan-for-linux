@@ -12,7 +12,7 @@ from ..fonts import install_font
 from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
 from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
-from ..settings import ACCENTS, THEMES, AppSettings
+from ..settings import ACCENTS, COLUMN_WIDTH_DEFAULTS, THEMES, AppSettings
 from ..wol import wake
 
 
@@ -127,6 +127,10 @@ class MainWindow(Adw.ApplicationWindow):
             title=_("Font"),
             description=_("Installa un font TTF/OTF nella tua cartella utente"),
         )
+        columns_group = Adw.PreferencesGroup(
+            title=_("Larghezza colonne"),
+            description=_("Regola le colonne con le frecce e scorri orizzontalmente se necessario"),
+        )
         language_group = Adw.PreferencesGroup(title=_("Lingua"))
         backup_group = Adw.PreferencesGroup(
             title=_("Backup e trasferimento"),
@@ -135,6 +139,7 @@ class MainWindow(Adw.ApplicationWindow):
         page.add(appearance_group)
         page.add(palette_group)
         page.add(font_group)
+        page.add(columns_group)
         page.add(language_group)
         page.add(backup_group)
 
@@ -199,6 +204,38 @@ class MainWindow(Adw.ApplicationWindow):
         font_row.add_suffix(font_button)
         font_group.add(font_row)
 
+        column_widths = dict(self.settings.column_widths)
+        column_labels = (
+            ("ipv4", _("Indirizzo IP")),
+            ("name", _("Nome / hostname")),
+            ("mac", _("Indirizzo MAC")),
+            ("status", _("Stato")),
+            ("vendor", _("Vendor scheda")),
+            ("manufacturer", _("Produttore")),
+            ("model", _("Modello")),
+            ("serial_number", _("Numero seriale")),
+            ("bios", _("BIOS")),
+            ("group", _("Gruppo")),
+            ("notes", _("Note")),
+            ("broadcast", _("Broadcast")),
+            ("port", _("Porta UDP")),
+        )
+        column_spins: dict[str, Gtk.SpinButton] = {}
+        for key, label in column_labels:
+            row = Adw.ActionRow(title=label, subtitle=_("Larghezza in caratteri"))
+            adjustment = Gtk.Adjustment(
+                value=column_widths.get(key, COLUMN_WIDTH_DEFAULTS[key]),
+                lower=4,
+                upper=60,
+                step_increment=1,
+                page_increment=5,
+            )
+            spin = Gtk.SpinButton(adjustment=adjustment, numeric=True, width_chars=4)
+            spin.set_valign(Gtk.Align.CENTER)
+            row.add_suffix(spin)
+            columns_group.add(row)
+            column_spins[key] = spin
+
         languages = available_languages()
         language_codes = [code for code, _label in languages]
         selected_language = (
@@ -258,6 +295,9 @@ class MainWindow(Adw.ApplicationWindow):
                 }
             )
             self.settings.font_family = pending_font[0]
+            self.settings.column_widths = {
+                key: int(spin.get_value()) for key, spin in column_spins.items()
+            }
             self.settings.save()
             apply_appearance(self.settings)
             current_dialog.destroy()
@@ -470,7 +510,7 @@ class MainWindow(Adw.ApplicationWindow):
         add_field(details_group, "manufacturer", _("Produttore computer"), value("manufacturer"))
         add_field(details_group, "model", _("Modello"), value("model"))
         add_field(details_group, "serial_number", _("Numero seriale"), value("serial_number"))
-        add_field(details_group, "bios", "BIOS", value("bios"))
+        add_field(details_group, "bios", _("BIOS"), value("bios"))
         add_field(details_group, "group_name", _("Gruppo"), value("group_name"))
         add_field(details_group, "notes", _("Note"), value("notes"))
         dialog.get_content_area().append(page)
@@ -530,11 +570,15 @@ class MainWindow(Adw.ApplicationWindow):
         for computer in computers:
             row = Gtk.ListBoxRow(activatable=True)
             row.computer = computer
-            row.check_button = Gtk.CheckButton(tooltip_text=_("Seleziona o deseleziona"))
+            row.check_button = Gtk.CheckButton(
+                tooltip_text=_("Seleziona o deseleziona"),
+                halign=Gtk.Align.CENTER,
+            )
             row.check_button.connect("toggled", self._on_selection_changed)
             row.status_icon = Gtk.Image(
                 icon_name="media-record-symbolic",
                 tooltip_text=_("Stato in verifica"),
+                halign=Gtk.Align.CENTER,
             )
             row.status_icon.add_css_class("warning")
 
@@ -545,9 +589,15 @@ class MainWindow(Adw.ApplicationWindow):
 
             grid = self._build_table_grid()
             grid.attach(row.check_button, 0, 0, 1, 1)
-            grid.attach(self._table_label(computer.ipv4 or "—", 16), 1, 0, 1, 1)
-            grid.attach(self._table_label(display_name, 28, expand=True), 2, 0, 1, 1)
-            grid.attach(self._table_label(computer.mac, 20), 3, 0, 1, 1)
+            grid.attach(self._table_label(computer.ipv4 or "—", self._column_width("ipv4")), 1, 0, 1, 1)
+            grid.attach(
+                self._table_label(display_name, self._column_width("name"), expand=True),
+                2,
+                0,
+                1,
+                1,
+            )
+            grid.attach(self._table_label(computer.mac, self._column_width("mac")), 3, 0, 1, 1)
             grid.attach(row.status_icon, 4, 0, 1, 1)
             details = (
                 computer.vendor,
@@ -563,7 +613,20 @@ class MainWindow(Adw.ApplicationWindow):
             for column, value, width in zip(
                 range(5, 14),
                 details,
-                (22, 22, 20, 20, 18, 16, 30, 18, 10),
+                tuple(
+                    self._column_width(key)
+                    for key in (
+                        "vendor",
+                        "manufacturer",
+                        "model",
+                        "serial_number",
+                        "bios",
+                        "group",
+                        "notes",
+                        "broadcast",
+                        "port",
+                    )
+                ),
                 strict=True,
             ):
                 grid.attach(self._table_label(value or "—", width), column, 0, 1, 1)
@@ -600,8 +663,12 @@ class MainWindow(Adw.ApplicationWindow):
         )
 
     @staticmethod
+    def _column_width(self, key: str) -> int:
+        return self.settings.column_widths.get(key, COLUMN_WIDTH_DEFAULTS[key])
+
+    @staticmethod
     def _table_label(text: str, width: int, expand: bool = False) -> Gtk.Label:
-        label = Gtk.Label(label=text, xalign=0, hexpand=expand)
+        label = Gtk.Label(label=text, xalign=0.5, hexpand=expand, justify=Gtk.Justification.CENTER)
         label.set_width_chars(width)
         label.set_max_width_chars(width)
         label.set_ellipsize(Pango.EllipsizeMode.END)
@@ -611,21 +678,21 @@ class MainWindow(Adw.ApplicationWindow):
         grid = self._build_table_grid()
         grid.set_margin_start(30)
         grid.set_margin_end(30)
-        grid.attach(Gtk.Label(width_request=16), 0, 0, 1, 1)
+        grid.attach(Gtk.Label(width_request=self._column_width("select")), 0, 0, 1, 1)
         for column, text, width, expand in (
-            (1, _("Indirizzo IP"), 16, False),
-            (2, _("Nome / hostname"), 28, True),
-            (3, _("Indirizzo MAC"), 20, False),
-            (4, _("Stato"), 6, False),
-            (5, _("Vendor scheda"), 22, False),
-            (6, _("Produttore"), 22, False),
-            (7, _("Modello"), 20, False),
-            (8, _("Numero seriale"), 20, False),
-            (9, _("BIOS"), 18, False),
-            (10, _("Gruppo"), 16, False),
-            (11, _("Note"), 30, False),
-            (12, _("Broadcast"), 18, False),
-            (13, _("Porta UDP"), 10, False),
+            (1, _("Indirizzo IP"), self._column_width("ipv4"), False),
+            (2, _("Nome / hostname"), self._column_width("name"), True),
+            (3, _("Indirizzo MAC"), self._column_width("mac"), False),
+            (4, _("Stato"), self._column_width("status"), False),
+            (5, _("Vendor scheda"), self._column_width("vendor"), False),
+            (6, _("Produttore"), self._column_width("manufacturer"), False),
+            (7, _("Modello"), self._column_width("model"), False),
+            (8, _("Numero seriale"), self._column_width("serial_number"), False),
+            (9, _("BIOS"), self._column_width("bios"), False),
+            (10, _("Gruppo"), self._column_width("group"), False),
+            (11, _("Note"), self._column_width("notes"), False),
+            (12, _("Broadcast"), self._column_width("broadcast"), False),
+            (13, _("Porta UDP"), self._column_width("port"), False),
         ):
             label = self._table_label(text, width, expand)
             label.add_css_class("heading")
