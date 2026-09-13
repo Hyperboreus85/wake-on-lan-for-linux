@@ -30,6 +30,9 @@ install -m 0644 \
 install -m 0644 \
   "$project_dir/data/icons/hicolor/scalable/actions/adw-entry-edit-symbolic.svg" \
   "$data_home/icons/hicolor/scalable/actions/adw-entry-edit-symbolic.svg"
+install -m 0644 \
+  "$project_dir/data/icons/hicolor/scalable/actions/adw-entry-apply-symbolic.svg" \
+  "$data_home/icons/hicolor/scalable/actions/adw-entry-apply-symbolic.svg"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database "$data_home/applications" >/dev/null 2>&1 || true

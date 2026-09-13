@@ -32,7 +32,10 @@ wol_linux = ["locale/*/LC_MESSAGES/*.mo"]
 "share/metainfo" = ["data/io.github.Hyperboreus85.WakeOnLanForLinux.metainfo.xml"]
 "share/icons/hicolor" = ["data/icons/hicolor/index.theme"]
 "share/icons/hicolor/scalable/apps" = ["data/icons/hicolor/scalable/apps/io.github.Hyperboreus85.WakeOnLanForLinux.svg"]
-"share/icons/hicolor/scalable/actions" = ["data/icons/hicolor/scalable/actions/adw-entry-edit-symbolic.svg"]
+"share/icons/hicolor/scalable/actions" = [
+  "data/icons/hicolor/scalable/actions/adw-entry-edit-symbolic.svg",
+  "data/icons/hicolor/scalable/actions/adw-entry-apply-symbolic.svg",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
