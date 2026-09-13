@@ -86,15 +86,18 @@ class MainWindow(Adw.ApplicationWindow):
         self.computer_list.add_css_class("boxed-list")
         self.computer_list.connect("row-activated", self._toggle_row)
 
-        list_scroller = Gtk.ScrolledWindow(
-            hscrollbar_policy=Gtk.PolicyType.NEVER,
+        table_content = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        table_content.append(self._build_table_header())
+        table_content.append(self.computer_list)
+        table_scroller = Gtk.ScrolledWindow(
+            hscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
+            vscrollbar_policy=Gtk.PolicyType.AUTOMATIC,
             vexpand=True,
         )
-        list_scroller.set_child(self.computer_list)
+        table_scroller.set_child(table_content)
 
         table_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        table_box.append(self._build_table_header())
-        table_box.append(list_scroller)
+        table_box.append(table_scroller)
 
         self.stack = Gtk.Stack()
         self.stack.add_named(self.empty_page, "empty")
@@ -443,6 +446,24 @@ class MainWindow(Adw.ApplicationWindow):
             grid.attach(self._table_label(display_name, 28, expand=True), 2, 0, 1, 1)
             grid.attach(self._table_label(computer.mac, 20), 3, 0, 1, 1)
             grid.attach(row.status_icon, 4, 0, 1, 1)
+            details = (
+                computer.vendor,
+                computer.manufacturer,
+                computer.model,
+                computer.serial_number,
+                computer.bios,
+                computer.group_name,
+                computer.notes,
+                computer.broadcast,
+                str(computer.wol_port),
+            )
+            for column, value, width in zip(
+                range(5, 14),
+                details,
+                (22, 22, 20, 20, 18, 16, 30, 18, 10),
+                strict=True,
+            ):
+                grid.attach(self._table_label(value or "—", width), column, 0, 1, 1)
             row.set_child(grid)
             self.computer_list.append(row)
 
@@ -493,6 +514,15 @@ class MainWindow(Adw.ApplicationWindow):
             (2, _("Nome / hostname"), 28, True),
             (3, _("Indirizzo MAC"), 20, False),
             (4, _("Stato"), 6, False),
+            (5, _("Vendor scheda"), 22, False),
+            (6, _("Produttore"), 22, False),
+            (7, _("Modello"), 20, False),
+            (8, _("Numero seriale"), 20, False),
+            (9, _("BIOS"), 18, False),
+            (10, _("Gruppo"), 16, False),
+            (11, _("Note"), 30, False),
+            (12, _("Broadcast"), 18, False),
+            (13, _("Porta UDP"), 10, False),
         ):
             label = self._table_label(text, width, expand)
             label.add_css_class("heading")
