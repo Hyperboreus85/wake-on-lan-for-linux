@@ -17,6 +17,7 @@ sudo apt-get install -y \
   python3-gi \
   python3-pip \
   python3-venv \
+  fontconfig \
   gir1.2-adw-1 \
   gir1.2-gtk-4.0 \
   gettext \
