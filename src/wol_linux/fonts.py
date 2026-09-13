@@ -40,7 +40,32 @@ def system_font_size() -> int:
 
 def font_directory() -> Path:
     data_home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
-    return data_home / "wake-on-lan-for-linux" / "fonts"
+    # Keep fonts below the standard per-user font directory so fontconfig and
+    # GTK can discover them without requiring a system-wide installation.
+    return data_home / "fonts" / "wake-on-lan-for-linux"
+
+
+def available_font_families() -> list[str]:
+    """Return unique font families known to fontconfig, sorted for the UI."""
+    try:
+        result = subprocess.run(
+            ["fc-list", "--format=%{family}\n"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return []
+    if result.returncode != 0:
+        return []
+    families: dict[str, str] = {}
+    for line in result.stdout.splitlines():
+        for family in line.split(","):
+            family = family.strip()
+            if family:
+                families.setdefault(family.casefold(), family)
+    return sorted(families.values(), key=str.casefold)
 
 
 def install_font(source: str | Path) -> str:

@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+from collections.abc import Callable
 
 from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
 from ..appearance import apply_appearance
 from ..backup import export_backup, load_backup, restore_translations
 from ..database import Database
-from ..fonts import install_font, system_font_size
+from ..fonts import available_font_families, install_font, system_font_size
 from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
 from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
@@ -190,17 +191,74 @@ class MainWindow(Adw.ApplicationWindow):
             palette_buttons[key] = color_button
 
         pending_font = [self.settings.font_family]
+        font_values = [""] + available_font_families()
+        if pending_font[0] and pending_font[0].casefold() not in {
+            family.casefold() for family in font_values
+        }:
+            font_values.append(pending_font[0])
+        font_model = Gtk.StringList.new(
+            [_("Predefinito di sistema") if not family else family for family in font_values]
+        )
+        selected_font = next(
+            (
+                index
+                for index, family in enumerate(font_values)
+                if family.casefold() == pending_font[0].casefold()
+            ),
+            0,
+        )
         font_row = Adw.ActionRow(
             title=_("Font dell'applicazione"),
             subtitle=self.settings.font_family or _("Predefinito di sistema"),
         )
         font_button = Gtk.Button(label=_("Installa font"), valign=Gtk.Align.CENTER)
-        font_button.connect(
-            "clicked",
-            lambda *_: self._choose_font_file(dialog, pending_font, font_row),
-        )
         font_row.add_suffix(font_button)
         font_group.add(font_row)
+
+        font_select_row = Adw.ComboRow(
+            title=_("Famiglia font"),
+            subtitle=_("Scegli tra i font installati nel sistema"),
+            model=font_model,
+            selected=selected_font,
+        )
+        font_group.add(font_select_row)
+
+        def select_font(family: str) -> None:
+            if not family:
+                font_row.set_subtitle(_("Predefinito di sistema"))
+            else:
+                font_row.set_subtitle(family)
+            pending_font[0] = family
+
+        def on_font_selected(*_args: object) -> None:
+            select_font(font_values[font_select_row.get_selected()])
+
+        font_select_row.connect("notify::selected", on_font_selected)
+
+        def select_installed_font(family: str) -> None:
+            existing = next(
+                (
+                    index
+                    for index, value in enumerate(font_values)
+                    if value.casefold() == family.casefold()
+                ),
+                None,
+            )
+            if existing is None:
+                font_values.append(family)
+                font_model.append(family)
+                existing = len(font_values) - 1
+            font_select_row.set_selected(existing)
+
+        font_button.connect(
+            "clicked",
+            lambda *_: self._choose_font_file(
+                dialog,
+                pending_font,
+                font_row,
+                select_installed_font,
+            ),
+        )
         system_size = system_font_size()
         font_size_row = Adw.ActionRow(
             title=_("Dimensione font"),
@@ -248,6 +306,7 @@ class MainWindow(Adw.ApplicationWindow):
             changed_palette.clear()
             pending_font[0] = ""
             font_row.set_subtitle(_("Predefinito di sistema"))
+            font_select_row.set_selected(0)
             font_size_spin.set_value(system_size)
 
         reset_button.connect("clicked", reset_visuals)
@@ -344,6 +403,7 @@ class MainWindow(Adw.ApplicationWindow):
         parent: Gtk.Window,
         pending_font: list[str],
         font_row: Adw.ActionRow,
+        on_installed: Callable[[str], None] | None = None,
     ) -> None:
         chooser = Gtk.FileChooserNative(
             title=_("Installa font"),
@@ -372,6 +432,8 @@ class MainWindow(Adw.ApplicationWindow):
                 return
             pending_font[0] = family
             font_row.set_subtitle(family)
+            if on_installed is not None:
+                on_installed(family)
             self.toasts.add_toast(Adw.Toast(title=_("Font installato: {font}").format(font=family)))
 
         chooser.connect("response", handle_response)
@@ -792,35 +854,32 @@ class MainWindow(Adw.ApplicationWindow):
 
     @staticmethod
     def _header_resize_hit(label: Gtk.Label, x: float) -> bool:
-        """Return whether the pointer is on header text or a divider handle.
+        """Return whether the pointer is on header text or its small hit area.
 
-        The divider itself stays a normal pointer; the eight pixels beside it
-        provide a forgiving resize target without making the whole column look
-        draggable.
+        Resizing is deliberately limited to the visible heading and a few
+        pixels around it.  The column dividers themselves remain normal
+        pointer areas, so they never advertise a misleading resize cursor.
         """
         width = label.get_allocated_width()
         if width <= 0:
             return True
         border_width = 2
-        handle_width = 10
-        near_divider = (
-            border_width < x < handle_width
-            or width - handle_width < x < width - border_width
-        )
+        text_padding = 6
         _minimum, natural, _minimum_baseline, _natural_baseline = label.measure(
             Gtk.Orientation.HORIZONTAL,
             -1,
         )
         text_width = min(width, natural)
         text_start = (width - text_width) / 2
-        on_text = text_start <= x <= text_start + text_width
-        return near_divider or on_text
+        hit_start = max(border_width, text_start - text_padding)
+        hit_end = min(width - border_width, text_start + text_width + text_padding)
+        return hit_start <= x <= hit_end
 
     def _update_header_cursor(self, label: Gtk.Label, x: float) -> None:
         if self._header_resize_hit(label, x):
             label.set_cursor_from_name("ew-resize")
         else:
-            label.set_cursor(None)
+            label.set_cursor_from_name("default")
 
     def _begin_header_resize(
         self,
@@ -884,7 +943,10 @@ class MainWindow(Adw.ApplicationWindow):
                 "motion",
                 lambda _motion, x, _y, header=label: self._update_header_cursor(header, x),
             )
-            motion.connect("leave", lambda _motion, header=label: header.set_cursor(None))
+            motion.connect(
+                "leave",
+                lambda _motion, header=label: header.set_cursor_from_name("default"),
+            )
             label.add_controller(motion)
             drag = Gtk.GestureDrag()
             drag.connect(
