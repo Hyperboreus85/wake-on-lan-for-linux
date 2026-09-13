@@ -12,6 +12,14 @@ ACCENT_COLORS = {
     "red": "#E01B24",
 }
 
+ACCENT_HOVER_COLORS = {
+    "ubuntu": "#c84316",
+    "blue": "#1c71d8",
+    "green": "#26a269",
+    "purple": "#813d9c",
+    "red": "#c01c28",
+}
+
 _provider: Gtk.CssProvider | None = None
 
 
@@ -30,12 +38,34 @@ def apply_appearance(settings: AppSettings) -> None:
     if _provider is not None:
         Gtk.StyleContext.remove_provider_for_display(display, _provider)
     color = ACCENT_COLORS[settings.accent]
+    hover_color = ACCENT_HOVER_COLORS[settings.accent]
     _provider = Gtk.CssProvider()
     _provider.load_from_data(
         f"""
         @define-color accent_color {color};
         @define-color accent_bg_color {color};
         @define-color accent_fg_color #ffffff;
+        @define-color theme_selected_bg_color {color};
+        @define-color theme_selected_fg_color #ffffff;
+
+        /* Keep Libadwaita action buttons in sync with the selected accent. */
+        button.suggested-action,
+        button.suggested-action:checked,
+        button.suggested-action:active,
+        .suggested-action > button,
+        .suggested-action button {{
+            background-color: {color};
+            color: #ffffff;
+        }}
+        button.suggested-action:hover,
+        .suggested-action > button:hover,
+        .suggested-action button:hover {{
+            background-color: {hover_color};
+        }}
+        button.suggested-action:disabled {{
+            background-color: {color};
+            opacity: 0.45;
+        }}
         """.encode()
     )
     Gtk.StyleContext.add_provider_for_display(
