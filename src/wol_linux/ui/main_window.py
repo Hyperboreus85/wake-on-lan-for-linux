@@ -571,7 +571,6 @@ class MainWindow(Adw.ApplicationWindow):
                 self._table_label(
                     display_name,
                     self._column_width("name"),
-                    expand=True,
                     column_key="name",
                 ),
                 2,
@@ -668,9 +667,10 @@ class MainWindow(Adw.ApplicationWindow):
         label = Gtk.Label(
             label=text,
             xalign=0.5,
-            hexpand=expand,
+            hexpand=False,
             justify=Gtk.Justification.CENTER,
         )
+        label.set_size_request(width * 8 + 24, -1)
         label.set_width_chars(width)
         label.set_max_width_chars(width)
         label.set_ellipsize(Pango.EllipsizeMode.END)
@@ -689,10 +689,12 @@ class MainWindow(Adw.ApplicationWindow):
         for key, labels in self._row_labels.items():
             width = self._column_width(key)
             for label in labels:
+                label.set_size_request(width * 8 + 24, -1)
                 label.set_width_chars(width)
                 label.set_max_width_chars(width)
         for key, label in self._header_labels.items():
             width = self._column_width(key)
+            label.set_size_request(width * 8 + 24, -1)
             label.set_width_chars(width)
             label.set_max_width_chars(width)
 
@@ -724,7 +726,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
         for column, key, text, expand in (
             (1, "ipv4", _("Indirizzo IP"), False),
-            (2, "name", _("Nome / hostname"), True),
+            (2, "name", _("Nome / hostname"), False),
             (3, "mac", _("Indirizzo MAC"), False),
             (4, "status", _("Stato"), False),
             (5, "vendor", _("Vendor scheda"), False),
