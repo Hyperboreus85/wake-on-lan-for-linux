@@ -1,11 +1,16 @@
 name: wake-on-lan-for-linux
-base: core24
+title: Wake on LAN for Linux
 version: '0.5.0'
 summary: Wake and manage computers on your local network
 description: |
   Wake on LAN for Linux is a simple GTK application for discovering,
   organizing and waking computers on a local network. It stores the computer
   list locally and sends standard Wake-on-LAN magic packets.
+icon: data/icons/hicolor/scalable/apps/io.github.Hyperboreus85.WakeOnLanForLinux.svg
+website: https://github.com/Hyperboreus85/wake-on-lan-for-linux
+source-code: https://github.com/Hyperboreus85/wake-on-lan-for-linux
+issues: https://github.com/Hyperboreus85/wake-on-lan-for-linux/issues
+contact: https://github.com/Hyperboreus85/wake-on-lan-for-linux/issues
 grade: stable
 confinement: strict
 license: GPL-3.0-or-later
