@@ -92,6 +92,12 @@ def apply_appearance(settings: AppSettings) -> None:
         headerbar, popover, menu, .navigation-sidebar {{
             {f'color: {menu_text_color};' if menu_text_color else ''}
         }}
+        /* The header and data rows share the same 12 px grid inset.  Remove
+           Libadwaita's boxed-list row inset so their first divider is exact. */
+        .boxed-list > row {{
+            margin: 0;
+            padding: 0;
+        }}
         .boxed-list, .boxed-list row, .table-cell {{
             {list_rule}
         }}

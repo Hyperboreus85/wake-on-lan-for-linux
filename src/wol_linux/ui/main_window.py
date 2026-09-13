@@ -591,6 +591,8 @@ class MainWindow(Adw.ApplicationWindow):
         computers = self.database.list_computers()
         for computer in computers:
             row = Gtk.ListBoxRow(activatable=True)
+            row.set_margin_start(0)
+            row.set_margin_end(0)
             row.computer = computer
             row.check_button = Gtk.CheckButton(
                 tooltip_text=_("Seleziona o deseleziona"),
