@@ -15,6 +15,14 @@
   </description>
   <launchable type="desktop-id">io.github.Hyperboreus85.WakeOnLanForLinux.desktop</launchable>
   <developer_name>Wake on LAN for Linux contributors</developer_name>
+  <releases>
+    <release version="0.5.0" date="2026-09-13">
+      <description>
+        <p>First packaged release with network discovery, device groups, status refresh,
+        configurable appearance, portable backups, and Wake-on-LAN support.</p>
+      </description>
+    </release>
+  </releases>
   <url type="homepage">https://github.com/Hyperboreus85/wake-on-lan-for-linux</url>
   <content_rating type="oars-1.1" />
 </component>

@@ -106,8 +106,8 @@ can be uploaded to the Snap Store and installed with:
 sudo snap install wake-on-lan-for-linux --edge
 ```
 
-The first development builds use the `devel` grade and are intended for testing before
-promotion to a stable Store channel.
+The package is marked `stable` and is ready for publication to the Snap Store once the
+Store name is reserved and the publisher credentials are configured.
 
 ## License
 
