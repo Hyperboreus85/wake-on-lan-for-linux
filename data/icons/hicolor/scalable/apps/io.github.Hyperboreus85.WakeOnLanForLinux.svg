@@ -1,15 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
   <defs>
-    <linearGradient id="background" x1="18" y1="12" x2="112" y2="118" gradientUnits="userSpaceOnUse">
+    <linearGradient id="background" x1="16" y1="12" x2="112" y2="118" gradientUnits="userSpaceOnUse">
       <stop stop-color="#ff7a45"/>
       <stop offset="1" stop-color="#c63612"/>
     </linearGradient>
+    <linearGradient id="socket" x1="28" y1="24" x2="100" y2="96" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3f4247"/>
+      <stop offset="1" stop-color="#202226"/>
+    </linearGradient>
   </defs>
+
+  <!-- Ubuntu-orange app tile. -->
   <rect x="8" y="8" width="112" height="112" rx="26" fill="url(#background)"/>
-  <path d="M64 28v34" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
-  <path d="M46 39a27 27 0 1 0 36 0" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round"/>
-  <circle cx="28" cy="101" r="7" fill="#fff"/>
-  <circle cx="100" cy="101" r="7" fill="#fff"/>
-  <path d="M35 101h18a11 11 0 0 0 11-11V79M93 101H75a11 11 0 0 1-11-11" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Shielded RJ45 female socket. -->
+  <path d="M28 27a7 7 0 0 1 7-7h58a7 7 0 0 1 7 7v65a7 7 0 0 1-7 7H35a7 7 0 0 1-7-7Z"
+        fill="url(#socket)" stroke="#fff" stroke-width="5"/>
+  <path d="M28 73h72v19a7 7 0 0 1-7 7H35a7 7 0 0 1-7-7Z"
+        fill="#17191c" stroke="#fff" stroke-width="3"/>
+
+  <!-- Power symbol inside the network socket. -->
+  <path d="M64 34v27" fill="none" stroke="#ff7a45" stroke-width="8" stroke-linecap="round"/>
+  <path d="M49 43a22 22 0 1 0 30 0" fill="none" stroke="#ff7a45" stroke-width="8" stroke-linecap="round"/>
+
+  <!-- RJ45 contacts. -->
+  <path d="M39 79v12M48 79v12M57 79v12M66 79v12M75 79v12M84 79v12M93 79v12"
+        stroke="#ffcf75" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Network cable leaving the socket. -->
+  <path d="M64 98v6c0 7 6 11 14 11h15" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+  <path d="M93 107h13v14H93Z" fill="#202226" stroke="#fff" stroke-width="4"/>
+  <path d="M106 110h5M106 114h5M106 118h5" stroke="#ffcf75" stroke-width="2" stroke-linecap="round"/>
 </svg>
