@@ -6,8 +6,10 @@ from collections.abc import Callable
 
 from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 
+from .. import __version__
 from ..appearance import apply_appearance
 from ..backup import export_backup, load_backup, restore_translations
+from ..build_info import build_revision
 from ..database import Database
 from ..fonts import available_font_families, install_font, system_font_size
 from ..i18n import available_languages, install_translation, tr as _
@@ -137,6 +139,20 @@ class MainWindow(Adw.ApplicationWindow):
         dialog = Gtk.Dialog(title=_("Impostazioni"), transient_for=self, modal=True)
         dialog.set_default_size(900, 760)
         dialog.set_resizable(True)
+        version_label = Gtk.Label(
+            label=_("Versione {version} · commit {revision}").format(
+                version=__version__,
+                revision=build_revision(),
+            ),
+            xalign=0,
+            hexpand=True,
+            halign=Gtk.Align.START,
+            valign=Gtk.Align.CENTER,
+            margin_start=12,
+        )
+        version_label.add_css_class("dim-label")
+        version_label.set_tooltip_text(_("Versione dell'applicazione e commit della build"))
+        dialog.add_action_widget(version_label, Gtk.ResponseType.NONE)
         dialog.add_button(_("Annulla"), Gtk.ResponseType.CANCEL)
         apply_button = dialog.add_button(_("Applica"), Gtk.ResponseType.ACCEPT)
         apply_button.add_css_class("suggested-action")

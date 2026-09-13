@@ -724,6 +724,14 @@ msgid "{count} computer cancellati"
 msgstr ""
 
 #: src/wol_linux/ui/main_window.py
+msgid "Versione {version} · commit {revision}"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Versione dell'applicazione e commit della build"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
 msgid "Aggiorna stato computer"
 msgstr ""
 

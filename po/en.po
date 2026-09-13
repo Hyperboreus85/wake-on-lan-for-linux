@@ -368,6 +368,11 @@ msgstr "{count} computers, including all IP addresses, MAC addresses, and detail
 msgid "{count} computer cancellati"
 msgstr "{count} computers deleted"
 
+msgid "Versione {version} · commit {revision}"
+msgstr "Version {version} · commit {revision}"
+msgid "Versione dell'applicazione e commit della build"
+msgstr "Application version and build commit"
+
 msgid "Aggiorna stato computer"
 msgstr "Refresh computer status"
 msgid "Stato dei computer aggiornato"
