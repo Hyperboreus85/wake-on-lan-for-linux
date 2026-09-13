@@ -1,5 +1,6 @@
 name: wake-on-lan-for-linux
 title: Wake on LAN for Linux
+base: core24
 version: '0.5.0'
 summary: Wake and manage computers on your local network
 description: |
@@ -25,6 +26,8 @@ apps:
     desktop: usr/share/applications/io.github.Hyperboreus85.WakeOnLanForLinux.desktop
     extensions:
       - gnome
+    slots:
+      - dbus-wake-on-lan-for-linux
     plugs:
       - desktop
       - desktop-legacy
@@ -37,6 +40,12 @@ apps:
       - opengl
       - wayland
       - x11
+
+slots:
+  dbus-wake-on-lan-for-linux:
+    interface: dbus
+    bus: session
+    name: io.github.Hyperboreus85.WakeOnLanForLinux
 
 parts:
   app:
