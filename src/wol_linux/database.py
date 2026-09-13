@@ -102,6 +102,13 @@ class Database:
             connection.commit()
             return cursor.rowcount
 
+    def clear_computers(self) -> int:
+        """Remove every saved computer and return the number removed."""
+        with closing(self.connect()) as connection:
+            cursor = connection.execute("DELETE FROM computers")
+            connection.commit()
+            return cursor.rowcount
+
     def import_computers(self, computers: list[Computer]) -> int:
         prepared = [self._computer_values(computer) for computer in computers]
         if not prepared:

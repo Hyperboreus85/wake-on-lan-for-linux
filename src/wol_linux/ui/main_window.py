@@ -396,6 +396,19 @@ class MainWindow(Adw.ApplicationWindow):
         restore_row.add_suffix(restore_button)
         backup_group.add(restore_row)
 
+        clear_row = Adw.ActionRow(
+            title=_("Cancella tutti i computer"),
+            subtitle=_("Rimuove dalla lista tutti i computer e gli indirizzi salvati"),
+        )
+        clear_button = Gtk.Button(label=_("Cancella tutto"), valign=Gtk.Align.CENTER)
+        clear_button.add_css_class("destructive-action")
+        clear_button.connect(
+            "clicked",
+            lambda *_: self._confirm_clear_all_computers(dialog),
+        )
+        clear_row.add_suffix(clear_button)
+        backup_group.add(clear_row)
+
         dialog.get_content_area().append(page)
 
         def handle_response(current_dialog: Gtk.Dialog, response: int) -> None:
@@ -1318,6 +1331,39 @@ class MainWindow(Adw.ApplicationWindow):
             self._refresh_computers()
             self.toasts.add_toast(
                 Adw.Toast(title=_("{count} computer eliminati").format(count=deleted))
+            )
+
+        dialog.connect("response", handle_response)
+        dialog.present()
+
+    def _confirm_clear_all_computers(self, parent: Gtk.Window) -> None:
+        count = len(self.database.list_computers())
+        if count == 0:
+            self.toasts.add_toast(Adw.Toast(title=_("La lista dei computer è già vuota")))
+            return
+
+        dialog = Adw.MessageDialog(
+            transient_for=parent,
+            heading=_("Cancellare tutti i computer?"),
+            body=_(
+                "Verranno rimossi {count} computer, inclusi tutti gli indirizzi IP, MAC "
+                "e dettagli importati dalla scansione. Le impostazioni grafiche non verranno modificate."
+            ).format(count=count),
+        )
+        dialog.add_response("cancel", _("Annulla"))
+        dialog.add_response("clear", _("Sì, cancella tutto"))
+        dialog.set_default_response("cancel")
+        dialog.set_close_response("cancel")
+        dialog.set_response_appearance("clear", Adw.ResponseAppearance.DESTRUCTIVE)
+
+        def handle_response(current_dialog: Adw.MessageDialog, response: str) -> None:
+            current_dialog.destroy()
+            if response != "clear":
+                return
+            deleted = self.database.clear_computers()
+            self._refresh_computers()
+            self.toasts.add_toast(
+                Adw.Toast(title=_("{count} computer cancellati").format(count=deleted))
             )
 
         dialog.connect("response", handle_response)

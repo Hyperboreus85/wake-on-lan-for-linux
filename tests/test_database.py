@@ -54,6 +54,16 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual(database.delete_computers([first, second]), 2)
             self.assertEqual(database.list_computers(), [])
 
+    def test_clear_computers(self) -> None:
+        with TemporaryDirectory() as directory:
+            database = Database(f"{directory}/test.db")
+            database.add_computer(Computer(name="Uno", mac="00:11:22:33:44:55"))
+            database.add_computer(Computer(name="Due", mac="00:11:22:33:44:66"))
+
+            self.assertEqual(database.clear_computers(), 2)
+            self.assertEqual(database.list_computers(), [])
+            self.assertEqual(database.clear_computers(), 0)
+
     def test_computers_are_sorted_by_numeric_ipv4(self) -> None:
         with TemporaryDirectory() as directory:
             database = Database(f"{directory}/test.db")

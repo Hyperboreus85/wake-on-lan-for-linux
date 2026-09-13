@@ -694,3 +694,35 @@ msgstr ""
 #, python-brace-format
 msgid "{count} dispositivi importati"
 msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Cancella tutti i computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Cancella tutto"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Cancellare tutti i computer?"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "La lista dei computer è già vuota"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Rimuove dalla lista tutti i computer e gli indirizzi salvati"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Sì, cancella tutto"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Verranno rimossi {count} computer, inclusi tutti gli indirizzi IP, MAC e dettagli importati dalla scansione. Le impostazioni grafiche non verranno modificate."
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "{count} computer cancellati"
+msgstr ""
