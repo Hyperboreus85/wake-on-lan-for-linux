@@ -61,3 +61,27 @@ parts:
         "$CRAFT_PART_BUILD/scripts/compile-translations.sh"
       fi
       craftctl default
+    override-prime: |
+      craftctl default
+
+      # setuptools data-files are installed below usr/local on some
+      # Snapcraft/Python combinations. The desktop integration expects the
+      # launcher and its metadata below the standard usr/share paths.
+      install -Dm644 \
+        "$CRAFT_PART_SRC/data/io.github.Hyperboreus85.WakeOnLanForLinux.desktop" \
+        "$CRAFT_PRIME/usr/share/applications/io.github.Hyperboreus85.WakeOnLanForLinux.desktop"
+      install -Dm644 \
+        "$CRAFT_PART_SRC/data/io.github.Hyperboreus85.WakeOnLanForLinux.metainfo.xml" \
+        "$CRAFT_PRIME/usr/share/metainfo/io.github.Hyperboreus85.WakeOnLanForLinux.metainfo.xml"
+      install -Dm644 \
+        "$CRAFT_PART_SRC/data/icons/hicolor/index.theme" \
+        "$CRAFT_PRIME/usr/share/icons/hicolor/index.theme"
+      install -Dm644 \
+        "$CRAFT_PART_SRC/data/icons/hicolor/scalable/apps/io.github.Hyperboreus85.WakeOnLanForLinux.svg" \
+        "$CRAFT_PRIME/usr/share/icons/hicolor/scalable/apps/io.github.Hyperboreus85.WakeOnLanForLinux.svg"
+      install -Dm644 \
+        "$CRAFT_PART_SRC/data/icons/hicolor/scalable/actions/adw-entry-edit-symbolic.svg" \
+        "$CRAFT_PRIME/usr/share/icons/hicolor/scalable/actions/adw-entry-edit-symbolic.svg"
+      install -Dm644 \
+        "$CRAFT_PART_SRC/data/icons/hicolor/scalable/actions/adw-entry-apply-symbolic.svg" \
+        "$CRAFT_PRIME/usr/share/icons/hicolor/scalable/actions/adw-entry-apply-symbolic.svg"
