@@ -726,3 +726,11 @@ msgstr ""
 #: src/wol_linux/ui/main_window.py
 msgid "{count} computer cancellati"
 msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Aggiorna stato computer"
+msgstr ""
+
+#: src/wol_linux/ui/main_window.py
+msgid "Stato dei computer aggiornato"
+msgstr ""

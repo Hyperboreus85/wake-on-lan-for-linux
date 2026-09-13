@@ -58,6 +58,13 @@ class MainWindow(Adw.ApplicationWindow):
         self.scan_button.connect("clicked", self._start_network_scan)
         header.pack_start(self.scan_button)
 
+        self.status_refresh_button = Gtk.Button(
+            icon_name="view-refresh-symbolic",
+            tooltip_text=_("Aggiorna stato computer"),
+        )
+        self.status_refresh_button.connect("clicked", self._refresh_statuses)
+        header.pack_start(self.status_refresh_button)
+
         settings_button = Gtk.Button(
             icon_name="preferences-system-symbolic",
             tooltip_text=_("Impostazioni"),
@@ -1118,7 +1125,11 @@ class MainWindow(Adw.ApplicationWindow):
             else _("Sveglia selezionati ({count})").format(count=count)
         )
 
-    def _check_statuses_async(self, computers: list[Computer]) -> None:
+    def _check_statuses_async(
+        self,
+        computers: list[Computer],
+        on_complete: Callable[[], bool] | None = None,
+    ) -> None:
         generation = getattr(self, "_status_generation", 0) + 1
         self._status_generation = generation
 
@@ -1127,8 +1138,22 @@ class MainWindow(Adw.ApplicationWindow):
                 address = computer.ipv4 or computer.hostname
                 status = check_host_status(address, computer.mac)
                 GLib.idle_add(self._apply_status, generation, computer.id, status)
+            if on_complete is not None:
+                GLib.idle_add(on_complete)
 
         threading.Thread(target=worker, daemon=True).start()
+
+    def _refresh_statuses(self, *_args: object) -> None:
+        self.status_refresh_button.set_sensitive(False)
+        self._check_statuses_async(
+            self.database.list_computers(),
+            on_complete=self._finish_manual_status_refresh,
+        )
+
+    def _finish_manual_status_refresh(self) -> bool:
+        self.status_refresh_button.set_sensitive(True)
+        self.toasts.add_toast(Adw.Toast(title=_("Stato dei computer aggiornato")))
+        return GLib.SOURCE_REMOVE
 
     def _periodic_status_check(self) -> bool:
         self._check_statuses_async(self.database.list_computers())

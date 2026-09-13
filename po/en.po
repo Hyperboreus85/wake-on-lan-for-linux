@@ -369,3 +369,8 @@ msgid "Verranno rimossi {count} computer, inclusi tutti gli indirizzi IP, MAC e 
 msgstr "{count} computers, including all IP addresses, MAC addresses, and details imported from the scan, will be removed. Visual settings will not be changed."
 msgid "{count} computer cancellati"
 msgstr "{count} computers deleted"
+
+msgid "Aggiorna stato computer"
+msgstr "Refresh computer status"
+msgid "Stato dei computer aggiornato"
+msgstr "Computer status updated"
