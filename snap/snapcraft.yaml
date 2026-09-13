@@ -1,0 +1,61 @@
+name: wake-on-lan-for-linux
+base: core24
+version: '0.5.0-dev'
+summary: Wake and manage computers on your local network
+description: |
+  Wake on LAN for Linux is a simple GTK application for discovering,
+  organizing and waking computers on a local network. It stores the computer
+  list locally and sends standard Wake-on-LAN magic packets.
+grade: devel
+confinement: strict
+license: GPL-3.0-or-later
+
+platforms:
+  amd64:
+  arm64:
+
+apps:
+  wake-on-lan-for-linux:
+    command: bin/wol-linux
+    desktop: usr/share/applications/io.github.Hyperboreus85.WakeOnLanForLinux.desktop
+    extensions:
+      - gnome
+    plugs:
+      - desktop
+      - desktop-legacy
+      - gsettings
+      - home
+      - network
+      - network-bind
+      - network-observe
+      - avahi-observe
+      - opengl
+      - wayland
+      - x11
+
+parts:
+  app:
+    plugin: python
+    source: .
+    build-packages:
+      - gettext
+      - fontconfig
+      - python3-dev
+      - python3-gi
+      - python3-setuptools
+      - libgirepository-2.0-dev
+    stage-packages:
+      - python3
+      - python3-gi
+      - fontconfig
+      - iproute2
+      - iputils-ping
+      - avahi-utils
+      - samba-common-bin
+    override-build: |
+      # Keep the gettext catalogue in the installed Python package when
+      # Snapcraft's Python plugin builds from an editable source tree.
+      if [ -x "$CRAFT_PART_BUILD/scripts/compile-translations.sh" ]; then
+        "$CRAFT_PART_BUILD/scripts/compile-translations.sh"
+      fi
+      craftctl default

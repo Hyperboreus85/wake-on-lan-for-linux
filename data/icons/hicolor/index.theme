@@ -1,9 +1,14 @@
 [Icon Theme]
 Name=Hicolor
 Comment=Fallback icon theme for Wake on LAN for Linux
-Directories=scalable/apps
+Directories=scalable/apps,scalable/actions
 
 [scalable/apps]
 Size=128
 Type=Scalable
 Context=Applications
+
+[scalable/actions]
+Size=16
+Type=Scalable
+Context=Actions

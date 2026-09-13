@@ -1,0 +1,25 @@
+name: Build Snap
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snap:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Build snap
+        id: snapcraft
+        uses: canonical/action-build@v1
+      - name: Upload snap artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wake-on-lan-for-linux-snap
+          path: ${{ steps.snapcraft.outputs.snap }}
