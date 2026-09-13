@@ -39,23 +39,33 @@ def apply_appearance(settings: AppSettings) -> None:
         Gtk.StyleContext.remove_provider_for_display(display, _provider)
     color = settings.custom_colors.get("accent", ACCENT_COLORS[settings.accent])
     button_color = settings.custom_colors.get("button", color)
-    menu_text_color = settings.custom_colors.get("menu_text", "#FFFFFF")
-    list_text_color = settings.custom_colors.get("list_text", "#FFFFFF")
-    primary_background = settings.custom_colors.get("background_primary", "#00000000")
-    secondary_background = settings.custom_colors.get("background_secondary", "#00000000")
+    menu_text_color = settings.custom_colors.get("menu_text")
+    list_text_color = settings.custom_colors.get("list_text")
+    primary_background = settings.custom_colors.get("background_primary")
+    secondary_background = settings.custom_colors.get("background_secondary")
+    action_text_color = menu_text_color or "#FFFFFF"
     hover_color = ACCENT_HOVER_COLORS[settings.accent]
     _provider = Gtk.CssProvider()
     font_family = settings.font_family.replace("\\", "\\\\").replace('"', '\\"')
     font_size = f"* {{ font-size: {settings.font_size}pt; }}" if settings.font_size else ""
+    menu_text_rule = f"@define-color theme_fg_color {menu_text_color};" if menu_text_color else ""
+    primary_background_rule = (
+        f"@define-color window_bg_color {primary_background};" if primary_background else ""
+    )
+    background_rule = f"background-color: {primary_background};" if primary_background else ""
+    list_rule = (
+        (f"color: {list_text_color};" if list_text_color else "")
+        + (f"background-color: {secondary_background};" if secondary_background else "")
+    )
     css = (
         f"""
         @define-color accent_color {color};
         @define-color accent_bg_color {color};
-        @define-color accent_fg_color {menu_text_color};
+        @define-color accent_fg_color {action_text_color};
         @define-color theme_selected_bg_color {color};
-        @define-color theme_selected_fg_color {menu_text_color};
-        @define-color theme_fg_color {menu_text_color};
-        @define-color window_bg_color {primary_background};
+        @define-color theme_selected_fg_color {action_text_color};
+        {menu_text_rule}
+        {primary_background_rule}
 
         /* Keep Libadwaita action buttons in sync with the selected accent. */
         button.suggested-action,
@@ -64,7 +74,7 @@ def apply_appearance(settings: AppSettings) -> None:
         .suggested-action > button,
         .suggested-action button {{
             background-color: {button_color};
-            color: {menu_text_color};
+            color: {action_text_color};
         }}
         button.suggested-action:hover,
         .suggested-action > button:hover,
@@ -76,15 +86,14 @@ def apply_appearance(settings: AppSettings) -> None:
             opacity: 0.45;
         }}
         window, .background {{
-            color: {menu_text_color};
-            background-color: {primary_background};
+            {f'color: {menu_text_color};' if menu_text_color else ''}
+            {background_rule}
         }}
         headerbar, popover, menu, .navigation-sidebar {{
-            color: {menu_text_color};
+            {f'color: {menu_text_color};' if menu_text_color else ''}
         }}
         .boxed-list, .boxed-list row, .table-cell {{
-            color: {list_text_color};
-            background-color: {secondary_background};
+            {list_rule}
         }}
         .table-cell {{
             border-right: 1px solid alpha(currentColor, 0.20);
