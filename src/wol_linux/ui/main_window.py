@@ -29,6 +29,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._header_labels: dict[str, Gtk.Label] = {}
         self._row_labels: dict[str, list[Gtk.Label]] = {}
         self._resize_starts: dict[str, int] = {}
+        self._resize_active: dict[str, bool] = {}
         self.set_default_size(980, 620)
 
         header = Adw.HeaderBar()
@@ -789,6 +790,54 @@ class MainWindow(Adw.ApplicationWindow):
         self.settings.save()
         self._resize_starts.pop(key, None)
 
+    @staticmethod
+    def _header_resize_hit(label: Gtk.Label, x: float) -> bool:
+        """Return whether the pointer is on header text or a divider handle.
+
+        The divider itself stays a normal pointer; the eight pixels beside it
+        provide a forgiving resize target without making the whole column look
+        draggable.
+        """
+        width = label.get_allocated_width()
+        if width <= 0:
+            return True
+        border_width = 2
+        handle_width = 10
+        near_divider = (
+            border_width < x < handle_width
+            or width - handle_width < x < width - border_width
+        )
+        _minimum, natural, _minimum_baseline, _natural_baseline = label.measure(
+            Gtk.Orientation.HORIZONTAL,
+            -1,
+        )
+        text_width = min(width, natural)
+        text_start = (width - text_width) / 2
+        on_text = text_start <= x <= text_start + text_width
+        return near_divider or on_text
+
+    def _update_header_cursor(self, label: Gtk.Label, x: float) -> None:
+        if self._header_resize_hit(label, x):
+            label.set_cursor_from_name("ew-resize")
+        else:
+            label.set_cursor(None)
+
+    def _begin_header_resize(
+        self,
+        gesture: Gtk.GestureDrag,
+        label: Gtk.Label,
+        key: str,
+    ) -> None:
+        valid, start_x, _start_y = gesture.get_start_point()
+        active = valid and self._header_resize_hit(label, start_x)
+        self._resize_active[key] = active
+        if active:
+            self._start_column_resize(key)
+
+    def _end_header_resize(self, key: str) -> None:
+        if self._resize_active.pop(key, False):
+            self._finish_column_resize(key)
+
     def _build_table_header(self) -> Gtk.Grid:
         grid = self._build_table_grid()
         grid.set_margin_start(12)
@@ -825,22 +874,36 @@ class MainWindow(Adw.ApplicationWindow):
                 header=True,
             )
             label.add_css_class("heading")
-            label.set_cursor_from_name("ew-resize")
             label.set_tooltip_text(_("Trascina per ridimensionare la colonna"))
+            motion = Gtk.EventControllerMotion()
+            motion.connect(
+                "enter",
+                lambda _motion, x, _y, header=label: self._update_header_cursor(header, x),
+            )
+            motion.connect(
+                "motion",
+                lambda _motion, x, _y, header=label: self._update_header_cursor(header, x),
+            )
+            motion.connect("leave", lambda _motion, header=label: header.set_cursor(None))
+            label.add_controller(motion)
             drag = Gtk.GestureDrag()
             drag.connect(
                 "drag-begin",
-                lambda _gesture, _x, _y, resize_key=key: self._start_column_resize(resize_key),
+                lambda gesture, _x, _y, header=label, resize_key=key: self._begin_header_resize(
+                    gesture, header, resize_key
+                ),
             )
             drag.connect(
                 "drag-update",
                 lambda _gesture, offset_x, _offset_y, resize_key=key: self._update_column_resize(
                     resize_key, offset_x
-                ),
+                )
+                if self._resize_active.get(resize_key, False)
+                else None,
             )
             drag.connect(
                 "drag-end",
-                lambda _gesture, _offset_x, _offset_y, resize_key=key: self._finish_column_resize(
+                lambda _gesture, _offset_x, _offset_y, resize_key=key: self._end_header_resize(
                     resize_key
                 ),
             )
