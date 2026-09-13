@@ -84,8 +84,8 @@ class MainWindow(Adw.ApplicationWindow):
             selection_mode=Gtk.SelectionMode.NONE,
             margin_top=18,
             margin_bottom=18,
-            margin_start=18,
-            margin_end=18,
+            margin_start=0,
+            margin_end=0,
         )
         self.computer_list.add_css_class("boxed-list")
         self.computer_list.connect("row-activated", self._toggle_row)
