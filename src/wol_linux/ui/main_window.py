@@ -48,21 +48,21 @@ class MainWindow(Adw.ApplicationWindow):
         self.scan_button.connect("clicked", self._start_network_scan)
         header.pack_start(self.scan_button)
 
-        self.wake_all_button = Gtk.Button(label=_("Sveglia tutti"))
-        self.wake_all_button.connect("clicked", self._wake_all)
-        header.pack_end(self.wake_all_button)
-
         settings_button = Gtk.Button(
             icon_name="preferences-system-symbolic",
             tooltip_text=_("Impostazioni"),
         )
         settings_button.connect("clicked", self._show_preferences)
-        header.pack_end(settings_button)
+        header.pack_start(settings_button)
 
         self.wake_button = Gtk.Button(label=_("Sveglia selezionati"))
         self.wake_button.add_css_class("suggested-action")
         self.wake_button.connect("clicked", self._wake_selected)
         header.pack_end(self.wake_button)
+
+        self.wake_all_button = Gtk.Button(label=_("Sveglia tutti"))
+        self.wake_all_button.connect("clicked", self._wake_all)
+        header.pack_end(self.wake_all_button)
 
         toolbar = Adw.ToolbarView()
         toolbar.add_top_bar(header)
