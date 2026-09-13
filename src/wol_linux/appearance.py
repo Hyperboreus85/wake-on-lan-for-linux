@@ -98,6 +98,12 @@ def apply_appearance(settings: AppSettings) -> None:
             margin: 0;
             padding: 0;
         }}
+        .settings-group {{
+            background-color: alpha(currentColor, 0.035);
+            border: 1px solid alpha(currentColor, 0.14);
+            border-radius: 12px;
+            padding: 6px;
+        }}
         .boxed-list, .boxed-list row, .table-cell {{
             {list_rule}
         }}

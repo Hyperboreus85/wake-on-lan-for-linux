@@ -134,8 +134,8 @@ class MainWindow(Adw.ApplicationWindow):
         apply_button.add_css_class("suggested-action")
 
         page = Gtk.Grid(
-            column_spacing=18,
-            row_spacing=18,
+            column_spacing=22,
+            row_spacing=22,
             margin_top=18,
             margin_bottom=18,
             margin_start=18,
@@ -157,6 +157,14 @@ class MainWindow(Adw.ApplicationWindow):
             title=_("Backup e trasferimento"),
             description=_("Salva macchine e personalizzazioni in un unico file"),
         )
+        for settings_group in (
+            appearance_group,
+            palette_group,
+            font_group,
+            language_group,
+            backup_group,
+        ):
+            settings_group.add_css_class("settings-group")
         page.attach(appearance_group, 0, 0, 1, 1)
         page.attach(palette_group, 1, 0, 1, 1)
         page.attach(font_group, 0, 1, 1, 1)
@@ -211,8 +219,8 @@ class MainWindow(Adw.ApplicationWindow):
             palette_rows.append(color_row)
             palette_buttons[key] = color_button
         palette_grid = Gtk.Grid(
-            column_spacing=12,
-            row_spacing=6,
+            column_spacing=18,
+            row_spacing=10,
             column_homogeneous=True,
         )
         for index, color_row in enumerate(palette_rows):
