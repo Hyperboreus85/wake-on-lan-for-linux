@@ -74,6 +74,14 @@ def apply_appearance(settings: AppSettings) -> None:
         window, .background {{
             color: {text_color};
         }}
+        .table-cell {{
+            border-right: 1px solid alpha(currentColor, 0.20);
+            padding-left: 12px;
+            padding-right: 12px;
+        }}
+        .table-fixed-cell {{
+            border-right: 1px solid alpha(currentColor, 0.20);
+        }}
         """ \
         + (f'* {{ font-family: "{font_family}"; }}' if font_family else "")
     _provider.load_from_data(css.encode())
