@@ -16,11 +16,18 @@ install -m 0644 \
   "$project_dir/data/$application_id.desktop" \
   "$data_home/applications/$application_id.desktop"
 install -m 0644 \
+  "$project_dir/data/icons/hicolor/index.theme" \
+  "$data_home/icons/hicolor/index.theme"
+install -m 0644 \
   "$project_dir/data/icons/hicolor/scalable/apps/$application_id.svg" \
   "$data_home/icons/hicolor/scalable/apps/$application_id.svg"
 
 if command -v update-desktop-database >/dev/null 2>&1; then
   update-desktop-database "$data_home/applications" >/dev/null 2>&1 || true
+fi
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+  gtk-update-icon-cache --force --ignore-theme-index \
+    "$data_home/icons/hicolor" >/dev/null 2>&1 || true
 fi
 
 echo "Launcher installato nel menu Applicazioni."

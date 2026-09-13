@@ -30,6 +30,7 @@ wol_linux = ["locale/*/LC_MESSAGES/*.mo"]
 [tool.setuptools.data-files]
 "share/applications" = ["data/io.github.Hyperboreus85.WakeOnLanForLinux.desktop"]
 "share/metainfo" = ["data/io.github.Hyperboreus85.WakeOnLanForLinux.metainfo.xml"]
+"share/icons/hicolor" = ["data/icons/hicolor/index.theme"]
 "share/icons/hicolor/scalable/apps" = ["data/icons/hicolor/scalable/apps/io.github.Hyperboreus85.WakeOnLanForLinux.svg"]
 
 [tool.setuptools.packages.find]

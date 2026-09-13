@@ -53,6 +53,9 @@ without repeating the full bootstrap:
 ./scripts/install-desktop-entry.sh
 ```
 
+The launcher installer also refreshes the local Hicolor icon cache so updated application
+icons are picked up by GNOME without reinstalling the application.
+
 ## Backup and transfer
 
 Open **Settings → Backup and transfer → Export complete backup** to create a portable JSON
