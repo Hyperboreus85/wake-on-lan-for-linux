@@ -539,8 +539,7 @@ class MainWindow(Adw.ApplicationWindow):
                 tooltip_text=_("Seleziona o deseleziona"),
                 halign=Gtk.Align.CENTER,
             )
-            row.check_button.add_css_class("table-fixed-cell")
-            row.check_button.set_size_request(self._column_width("select") * 8 + 24, -1)
+            row.check_button.set_size_request(self._cell_pixel_width("select"), -1)
             row.check_button.connect("toggled", self._on_selection_changed)
             row.status_icon = Gtk.Image(
                 icon_name="media-record-symbolic",
@@ -548,7 +547,7 @@ class MainWindow(Adw.ApplicationWindow):
                 halign=Gtk.Align.CENTER,
             )
             row.status_icon.add_css_class("table-fixed-cell")
-            row.status_icon.set_size_request(self._column_width("status") * 8 + 24, -1)
+            row.status_icon.set_size_request(self._cell_pixel_width("status"), -1)
             row.status_icon.add_css_class("warning")
 
             hostname = computer.hostname.strip()
@@ -656,6 +655,9 @@ class MainWindow(Adw.ApplicationWindow):
     def _column_width(self, key: str) -> int:
         return self.settings.column_widths.get(key, COLUMN_WIDTH_DEFAULTS[key])
 
+    def _cell_pixel_width(self, key: str) -> int:
+        return self._column_width(key) * 8
+
     def _table_label(
         self,
         text: str,
@@ -670,7 +672,7 @@ class MainWindow(Adw.ApplicationWindow):
             hexpand=False,
             justify=Gtk.Justification.CENTER,
         )
-        label.set_size_request(width * 8 + 24, -1)
+        label.set_size_request(width * 8, -1)
         label.set_width_chars(width)
         label.set_max_width_chars(width)
         label.set_ellipsize(Pango.EllipsizeMode.END)
@@ -684,17 +686,17 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _apply_column_widths(self) -> None:
         for row in self._computer_rows():
-            row.check_button.set_size_request(self._column_width("select") * 8 + 24, -1)
-            row.status_icon.set_size_request(self._column_width("status") * 8 + 24, -1)
+            row.check_button.set_size_request(self._cell_pixel_width("select"), -1)
+            row.status_icon.set_size_request(self._cell_pixel_width("status"), -1)
         for key, labels in self._row_labels.items():
             width = self._column_width(key)
             for label in labels:
-                label.set_size_request(width * 8 + 24, -1)
+                label.set_size_request(width * 8, -1)
                 label.set_width_chars(width)
                 label.set_max_width_chars(width)
         for key, label in self._header_labels.items():
             width = self._column_width(key)
-            label.set_size_request(width * 8 + 24, -1)
+            label.set_size_request(width * 8, -1)
             label.set_width_chars(width)
             label.set_max_width_chars(width)
 
@@ -715,8 +717,7 @@ class MainWindow(Adw.ApplicationWindow):
         grid = self._build_table_grid()
         grid.set_margin_start(12)
         grid.set_margin_end(12)
-        select_header = Gtk.Label(width_request=self._column_width("select") * 8 + 24)
-        select_header.add_css_class("table-fixed-cell")
+        select_header = Gtk.Label(width_request=self._cell_pixel_width("select"))
         grid.attach(
             select_header,
             0,

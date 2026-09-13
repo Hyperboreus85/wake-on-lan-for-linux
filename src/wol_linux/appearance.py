@@ -76,8 +76,6 @@ def apply_appearance(settings: AppSettings) -> None:
         }}
         .table-cell {{
             border-right: 1px solid alpha(currentColor, 0.20);
-            padding-left: 12px;
-            padding-right: 12px;
         }}
         .table-fixed-cell {{
             border-right: 1px solid alpha(currentColor, 0.20);
