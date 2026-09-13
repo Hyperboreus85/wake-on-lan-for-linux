@@ -54,15 +54,7 @@ class Database:
             connection.commit()
 
     def add_computer(self, computer: Computer) -> int:
-        values = (
-            computer.name.strip(), computer.hostname.strip(), computer.ipv4.strip(),
-            normalize_mac(computer.mac), computer.broadcast.strip(), computer.wol_port,
-            computer.vendor.strip(), computer.manufacturer.strip(), computer.model.strip(),
-            computer.serial_number.strip(), computer.bios.strip(), computer.group_name.strip(),
-            computer.notes.strip(),
-        )
-        if not values[0]:
-            raise ValueError("Il nome del computer è obbligatorio")
+        values = self._computer_values(computer)
         with closing(self.connect()) as connection:
             cursor = connection.execute(
                 """
@@ -76,6 +68,55 @@ class Database:
             connection.commit()
             return int(cursor.lastrowid)
 
+    def update_computer(self, computer: Computer) -> None:
+        if computer.id is None:
+            raise ValueError("Impossibile modificare un computer senza ID")
+        values = self._computer_values(computer)
+        with closing(self.connect()) as connection:
+            cursor = connection.execute(
+                """
+                UPDATE computers SET
+                    name = ?, hostname = ?, ipv4 = ?, mac = ?, broadcast = ?,
+                    wol_port = ?, vendor = ?, manufacturer = ?, model = ?,
+                    serial_number = ?, bios = ?, group_name = ?, notes = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+                """,
+                (*values, computer.id),
+            )
+            if cursor.rowcount != 1:
+                raise ValueError("Computer non trovato")
+            connection.commit()
+
+    def delete_computers(self, computer_ids: list[int]) -> int:
+        if not computer_ids:
+            return 0
+        placeholders = ",".join("?" for _ in computer_ids)
+        with closing(self.connect()) as connection:
+            cursor = connection.execute(
+                f"DELETE FROM computers WHERE id IN ({placeholders})",  # noqa: S608
+                computer_ids,
+            )
+            connection.commit()
+            return cursor.rowcount
+
+    @staticmethod
+    def _computer_values(computer: Computer) -> tuple[object, ...]:
+        values = (
+            computer.name.strip(), computer.hostname.strip(), computer.ipv4.strip(),
+            normalize_mac(computer.mac), computer.broadcast.strip(), computer.wol_port,
+            computer.vendor.strip(), computer.manufacturer.strip(), computer.model.strip(),
+            computer.serial_number.strip(), computer.bios.strip(), computer.group_name.strip(),
+            computer.notes.strip(),
+        )
+        if not values[0]:
+            raise ValueError("Il nome del computer è obbligatorio")
+        if not values[4]:
+            raise ValueError("L'indirizzo broadcast è obbligatorio")
+        if not 1 <= computer.wol_port <= 65535:
+            raise ValueError("La porta deve essere compresa tra 1 e 65535")
+        return values
+
     def list_computers(self) -> list[Computer]:
         with closing(self.connect()) as connection:
             rows = connection.execute("SELECT * FROM computers ORDER BY name COLLATE NOCASE").fetchall()
@@ -83,4 +124,3 @@ class Database:
             Computer(**{field: row[field] for field in Computer.__dataclass_fields__})
             for row in rows
         ]
-

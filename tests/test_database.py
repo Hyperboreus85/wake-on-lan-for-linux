@@ -29,3 +29,27 @@ class DatabaseTests(unittest.TestCase):
 
             with self.assertRaises(sqlite3.IntegrityError):
                 database.add_computer(Computer(name="Secondo", mac="aa-bb-cc-dd-ee-ff"))
+
+    def test_update_computer(self) -> None:
+        with TemporaryDirectory() as directory:
+            database = Database(f"{directory}/test.db")
+            computer_id = database.add_computer(Computer(name="Vecchio", mac="00:11:22:33:44:55"))
+            computer = database.list_computers()[0]
+            self.assertEqual(computer.id, computer_id)
+
+            computer.name = "Nuovo"
+            computer.ipv4 = "192.168.1.25"
+            database.update_computer(computer)
+
+            updated = database.list_computers()[0]
+            self.assertEqual(updated.name, "Nuovo")
+            self.assertEqual(updated.ipv4, "192.168.1.25")
+
+    def test_delete_computers(self) -> None:
+        with TemporaryDirectory() as directory:
+            database = Database(f"{directory}/test.db")
+            first = database.add_computer(Computer(name="Uno", mac="00:11:22:33:44:55"))
+            second = database.add_computer(Computer(name="Due", mac="00:11:22:33:44:66"))
+
+            self.assertEqual(database.delete_computers([first, second]), 2)
+            self.assertEqual(database.list_computers(), [])
