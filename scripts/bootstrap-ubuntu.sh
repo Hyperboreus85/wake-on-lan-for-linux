@@ -19,7 +19,9 @@ sudo apt-get install -y \
   python3-venv \
   gir1.2-adw-1 \
   gir1.2-gtk-4.0 \
-  gettext
+  gettext \
+  avahi-utils \
+  samba-common-bin
 
 "$project_dir/scripts/compile-translations.sh"
 python3 -m venv --system-site-packages "$project_dir/.venv"

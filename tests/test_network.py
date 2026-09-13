@@ -1,7 +1,13 @@
 import ipaddress
 import unittest
 
-from wol_linux.network import parse_hostname, parse_neighbours, parse_routes
+from wol_linux.network import (
+    parse_avahi_hostname,
+    parse_hostname,
+    parse_nmblookup_hostname,
+    parse_neighbours,
+    parse_routes,
+)
 
 
 class NetworkParsingTests(unittest.TestCase):
@@ -38,3 +44,13 @@ class NetworkParsingTests(unittest.TestCase):
 
     def test_parse_hostname_returns_empty_when_unknown(self) -> None:
         self.assertEqual(parse_hostname("", "192.168.10.7"), "")
+
+    def test_parse_avahi_hostname(self) -> None:
+        self.assertEqual(
+            parse_avahi_hostname("192.168.10.7 pve1.local\n", "192.168.10.7"),
+            "pve1.local",
+        )
+
+    def test_parse_nmblookup_hostname(self) -> None:
+        payload = "Looking up status of 192.168.10.7\nPVE1       <00> -         B <ACTIVE>\n"
+        self.assertEqual(parse_nmblookup_hostname(payload, "192.168.10.7"), "PVE1")

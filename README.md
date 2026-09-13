@@ -19,6 +19,7 @@ accidental mass wake-ups.
 - Wake all configured computers with three-step confirmation.
 - Scan every address in the detected local IPv4 subnet and choose which devices to import.
 - Resolve hostnames during discovery when local DNS, mDNS, or `/etc/hosts` provides them.
+- Try reverse DNS, Avahi/mDNS, and NetBIOS fallbacks when resolving hostnames.
 - Sort saved computers by the numeric value of their IPv4 address.
 - Display IP, name/hostname, MAC address, and status in aligned horizontal columns.
 - Show a status LED for each saved device: yellow while checking, green online, red offline.
@@ -39,7 +40,8 @@ From the project directory:
 ./run.sh
 ```
 
-The bootstrap script installs the Ubuntu packages required by GTK, compiles translations,
+The bootstrap script installs the Ubuntu packages required by GTK, hostname discovery,
+compiles translations,
 creates a Python virtual environment, and installs a launcher in the current user's
 application menu. The application stores user data under the XDG data directory, normally
 `~/.local/share/wake-on-lan-for-linux/wol-linux.db`.

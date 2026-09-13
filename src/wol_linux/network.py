@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import shutil
+import socket
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
@@ -98,7 +100,52 @@ def parse_hostname(payload: str, address: str) -> str:
     return ""
 
 
+def parse_avahi_hostname(payload: str, address: str) -> str:
+    """Parse ``avahi-resolve-address`` output (address + hostname)."""
+    return parse_hostname(payload, address)
+
+
+def parse_nmblookup_hostname(payload: str, address: str) -> str:
+    """Extract a NetBIOS computer name from ``nmblookup -A`` output."""
+    del address  # NetBIOS output does not repeat the queried address.
+    for line in payload.splitlines():
+        fields = line.split()
+        if len(fields) < 2 or fields[1] != "<00>":
+            continue
+        name = fields[0].strip()
+        if name and name != "__MSBROWSE__" and not name.endswith("GROUP"):
+            return name
+    return ""
+
+
+def _reverse_dns_hostname(address: str) -> str:
+    try:
+        hostname, _service = socket.getnameinfo(
+            (address, 0), socket.NI_NAMEREQD
+        )
+    except (OSError, socket.gaierror):
+        return ""
+    return "" if hostname == address else hostname.rstrip(".")
+
+
+def _command_hostname(command: list[str], address: str, parser: Callable[[str, str], str]) -> str:
+    if shutil.which(command[0]) is None:
+        return ""
+    try:
+        process = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1.5,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return ""
+    return parser(process.stdout, address)
+
+
 def resolve_hostname(address: str) -> str:
+    """Resolve a host using local NSS, DNS, mDNS, and optional NetBIOS."""
     try:
         process = subprocess.run(
             ["getent", "hosts", address],
@@ -108,8 +155,22 @@ def resolve_hostname(address: str) -> str:
             timeout=2,
         )
     except (OSError, subprocess.SubprocessError):
-        return ""
-    return parse_hostname(process.stdout, address)
+        process = None
+    if process is not None:
+        hostname = parse_hostname(process.stdout, address)
+        if hostname:
+            return hostname
+
+    hostname = _reverse_dns_hostname(address)
+    if hostname:
+        return hostname
+
+    hostname = _command_hostname(
+        ["avahi-resolve-address", "-4", address], address, parse_avahi_hostname
+    )
+    if hostname:
+        return hostname
+    return _command_hostname(["nmblookup", "-A", address], address, parse_nmblookup_hostname)
 
 
 def detect_local_network() -> LocalNetwork:
