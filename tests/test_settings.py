@@ -20,6 +20,17 @@ class SettingsTests(unittest.TestCase):
                 stream.write('{"theme":"invalid","accent":"invalid"}')
             self.assertEqual(AppSettings.load(path), AppSettings())
 
+    def test_transparent_legacy_colors_are_discarded(self) -> None:
+        with TemporaryDirectory() as directory:
+            path = f"{directory}/settings.json"
+            with open(path, "w", encoding="utf-8") as stream:
+                stream.write(
+                    '{"custom_colors": {'
+                    '"background_primary":"#00000000", '
+                    '"background_secondary":"#00000000"}}'
+                )
+            self.assertEqual(AppSettings.load(path).custom_colors, {})
+
     def test_custom_palette_and_font_round_trip(self) -> None:
         with TemporaryDirectory() as directory:
             path = f"{directory}/settings.json"
