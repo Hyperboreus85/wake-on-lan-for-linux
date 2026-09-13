@@ -95,6 +95,20 @@ Application commands should not be run with `sudo`.
 ./scripts/test.sh
 ```
 
+## Snap package
+
+The repository contains a strict-confinement Snap recipe in `snap/snapcraft.yaml`.
+Every push to `main` builds a test Snap through GitHub Actions; the resulting `.snap`
+file is available as a workflow artifact. Once a release is ready, the same artifact
+can be uploaded to the Snap Store and installed with:
+
+```bash
+sudo snap install wake-on-lan-for-linux --edge
+```
+
+The first development builds use the `devel` grade and are intended for testing before
+promotion to a stable Store channel.
+
 ## License
 
 GPL-3.0-or-later.
