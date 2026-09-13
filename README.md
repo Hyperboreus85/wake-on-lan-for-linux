@@ -1,6 +1,6 @@
 # Wake on LAN for Linux
 
-[![Build](https://github.com/Hyperboreus85/wake-on-lan-for-linux/actions/workflows/build.yml/badge.svg)](https://github.com/Hyperboreus85/wake-on-lan-for-linux/actions)
+[![Build](https://github.com/Hyperboreus85/wake-on-lan-for-linux/actions/workflows/snap.yml/badge.svg)](https://github.com/Hyperboreus85/wake-on-lan-for-linux/actions)
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](LICENSE)
 [![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange.svg)](https://github.com/Hyperboreus85/wake-on-lan-for-linux)
 
