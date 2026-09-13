@@ -67,7 +67,7 @@ class MainWindow(Adw.ApplicationWindow):
         self._group_model = Gtk.StringList.new([_("Tutti i gruppi")])
         self.group_filter = Gtk.DropDown(model=self._group_model, selected=0)
         self.group_filter.set_tooltip_text(_("Filtra i computer per gruppo"))
-        self.group_filter.set_width_request(150)
+        self.group_filter.set_size_request(150, -1)
         self.group_filter.connect("notify::selected", self._on_group_filter_changed)
         header.pack_start(self.group_filter)
 
