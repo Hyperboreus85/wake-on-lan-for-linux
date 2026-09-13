@@ -622,7 +622,7 @@ class MainWindow(Adw.ApplicationWindow):
         page = Adw.PreferencesPage()
         required_group = Adw.PreferencesGroup(
             title=_("Computer"),
-            description=_("Nome e indirizzo MAC sono obbligatori."),
+            description=_("Nome host e indirizzo MAC sono obbligatori."),
         )
         network_group = Adw.PreferencesGroup(title=_("Wake-on-LAN"))
         details_group = Adw.PreferencesGroup(title=_("Dettagli facoltativi"))
@@ -652,7 +652,12 @@ class MainWindow(Adw.ApplicationWindow):
             group.add(entry)
             fields[key] = entry
 
-        add_field(required_group, "name", _("Nome computer"), value("name"))
+        add_field(
+            required_group,
+            "hostname",
+            _("Nome host"),
+            value("hostname") or value("name"),
+        )
         add_field(required_group, "mac", _("Indirizzo MAC"), value("mac"))
         add_field(network_group, "ipv4", _("Indirizzo IPv4"), value("ipv4"))
         add_field(
@@ -662,7 +667,6 @@ class MainWindow(Adw.ApplicationWindow):
             value("broadcast", "255.255.255.255"),
         )
         add_field(network_group, "port", _("Porta UDP"), value("wol_port", "9"))
-        add_field(details_group, "hostname", _("Hostname"), value("hostname"))
         add_field(details_group, "vendor", _("Produttore scheda di rete"), value("vendor"))
         add_field(details_group, "manufacturer", _("Produttore computer"), value("manufacturer"))
         add_field(details_group, "model", _("Modello"), value("model"))
@@ -700,11 +704,15 @@ class MainWindow(Adw.ApplicationWindow):
                 return
 
             try:
+                ipv4 = fields["ipv4"].get_text().strip()
+                host_name = fields["hostname"].get_text().strip()
+                if not host_name:
+                    host_name = ipv4 or (computer.name.strip() if computer else "")
                 saved = Computer(
                     id=computer.id if computer else None,
-                    name=fields["name"].get_text(),
+                    name=host_name,
                     mac=fields["mac"].get_text(),
-                    ipv4=fields["ipv4"].get_text(),
+                    ipv4=ipv4,
                     broadcast=fields["broadcast"].get_text(),
                     wol_port=int(fields["port"].get_text().strip()),
                     hostname=fields["hostname"].get_text(),
@@ -773,10 +781,12 @@ class MainWindow(Adw.ApplicationWindow):
             row.status_icon.set_size_request(self._cell_pixel_width("status"), -1)
             row.status_icon.add_css_class("warning")
 
-            hostname = computer.hostname.strip()
-            display_name = computer.name
-            if hostname and hostname.casefold() != computer.name.casefold():
-                display_name = f"{computer.name} · {hostname}"
+            display_name = (
+                computer.hostname.strip()
+                or computer.name.strip()
+                or computer.ipv4.strip()
+                or "—"
+            )
 
             grid = self._build_table_grid()
             row.select_cell = self._fixed_widget_cell(row.check_button, "select")
@@ -1053,7 +1063,7 @@ class MainWindow(Adw.ApplicationWindow):
         )
         for column, key, text, expand in (
             (1, "ipv4", _("Indirizzo IP"), False),
-            (2, "name", _("Nome / hostname"), False),
+            (2, "name", _("Nome host"), False),
             (3, "mac", _("Indirizzo MAC"), False),
             (4, "status", _("Stato"), False),
             (5, "vendor", _("Vendor scheda"), False),

@@ -150,7 +150,7 @@ class Database:
             computer.notes.strip(),
         )
         if not values[0]:
-            raise ValueError(_("Il nome del computer è obbligatorio"))
+            raise ValueError(_("Il nome host o l'indirizzo IP è obbligatorio"))
         if not values[4]:
             raise ValueError(_("L'indirizzo broadcast è obbligatorio"))
         if not 1 <= computer.wol_port <= 65535:

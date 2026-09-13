@@ -235,8 +235,8 @@ msgstr ""
 msgid "Il file di backup non è leggibile o non contiene JSON valido"
 msgstr ""
 
-#: src/wol_linux/database.py:146
-msgid "Il nome del computer è obbligatorio"
+#: src/wol_linux/database.py
+msgid "Il nome host o l'indirizzo IP è obbligatorio"
 msgstr ""
 
 #: src/wol_linux/ui/main_window.py:372 src/wol_linux/ui/main_window.py:468
@@ -402,16 +402,12 @@ msgstr ""
 msgid "Nessuna rete IPv4 locale rilevata"
 msgstr ""
 
-#: src/wol_linux/ui/main_window.py:1013
-msgid "Nome / hostname"
+#: src/wol_linux/ui/main_window.py
+msgid "Nome host"
 msgstr ""
 
-#: src/wol_linux/ui/main_window.py:612
-msgid "Nome computer"
-msgstr ""
-
-#: src/wol_linux/ui/main_window.py:582
-msgid "Nome e indirizzo MAC sono obbligatori."
+#: src/wol_linux/ui/main_window.py
+msgid "Nome host e indirizzo MAC sono obbligatori."
 msgstr ""
 
 #: src/wol_linux/ui/main_window.py:629 src/wol_linux/ui/main_window.py:1022
