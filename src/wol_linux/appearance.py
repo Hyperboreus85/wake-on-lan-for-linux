@@ -92,6 +92,13 @@ def apply_appearance(settings: AppSettings) -> None:
         headerbar, popover, menu, .navigation-sidebar {{
             {f'color: {menu_text_color};' if menu_text_color else ''}
         }}
+        /* Give the built-in GTK color chooser enough room for its complete
+           editor.  Without this minimum size GTK constrains the popover and
+           adds a vertical scrollbar even though the chooser content is small. */
+        colorchooser {{
+            min-width: 350px;
+            min-height: 500px;
+        }}
         /* The header and data rows share the same 12 px grid inset.  Remove
            Libadwaita's boxed-list row inset so their first divider is exact. */
         .boxed-list > row {{
