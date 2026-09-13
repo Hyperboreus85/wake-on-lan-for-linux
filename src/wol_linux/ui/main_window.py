@@ -8,7 +8,7 @@ from gi.repository import Adw, Gdk, GLib, Gtk, Pango
 from ..appearance import apply_appearance
 from ..backup import export_backup, load_backup, restore_translations
 from ..database import Database
-from ..fonts import install_font
+from ..fonts import install_font, system_font_size
 from ..i18n import available_languages, install_translation, tr as _
 from ..models import Computer
 from ..network import DiscoveredHost, ScanResult, ping_host, scan_local_network
@@ -200,14 +200,15 @@ class MainWindow(Adw.ApplicationWindow):
         )
         font_row.add_suffix(font_button)
         font_group.add(font_row)
+        system_size = system_font_size()
         font_size_row = Adw.ActionRow(
             title=_("Dimensione font"),
-            subtitle=_("0 usa la dimensione predefinita del sistema"),
+            subtitle=_("I font installati erediteranno questa dimensione"),
         )
         font_size_spin = Gtk.SpinButton(
             adjustment=Gtk.Adjustment(
-                value=self.settings.font_size,
-                lower=0,
+                value=self.settings.font_size or system_size,
+                lower=6,
                 upper=32,
                 step_increment=1,
                 page_increment=2,
@@ -246,7 +247,7 @@ class MainWindow(Adw.ApplicationWindow):
             changed_palette.clear()
             pending_font[0] = ""
             font_row.set_subtitle(_("Predefinito di sistema"))
-            font_size_spin.set_value(0)
+            font_size_spin.set_value(system_size)
 
         reset_button.connect("clicked", reset_visuals)
 
@@ -313,7 +314,10 @@ class MainWindow(Adw.ApplicationWindow):
                     }
                 )
             self.settings.font_family = pending_font[0]
-            self.settings.font_size = int(font_size_spin.get_value())
+            selected_font_size = int(font_size_spin.get_value())
+            self.settings.font_size = (
+                0 if selected_font_size == system_size else selected_font_size
+            )
             self._apply_column_widths()
             self.settings.save()
             apply_appearance(self.settings)
@@ -751,6 +755,11 @@ class MainWindow(Adw.ApplicationWindow):
 
     def _apply_column_widths(self) -> None:
         for row in self._computer_rows():
+            # Keep the child widgets' minimum widths in sync with their cells.
+            # Otherwise the status icon keeps the original width and prevents
+            # the Status column from following the draggable header divider.
+            row.check_button.set_size_request(self._cell_pixel_width("select"), -1)
+            row.status_icon.set_size_request(self._cell_pixel_width("status"), -1)
             row.select_cell.set_size_request(self._cell_pixel_width("select"), -1)
             row.status_cell.set_size_request(self._cell_pixel_width("status"), -1)
         for key, labels in self._row_labels.items():

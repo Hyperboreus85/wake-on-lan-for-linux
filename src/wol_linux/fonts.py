@@ -5,6 +5,38 @@ import re
 import subprocess
 from pathlib import Path
 
+SYSTEM_FONT_SIZE_FALLBACK = 11
+
+
+def system_font_size() -> int:
+    """Return the desktop's effective default font size in points.
+
+    GNOME stores the chosen font (including its point size) in gsettings.  The
+    fontconfig fallback keeps the setting useful on lightweight desktops where
+    gsettings is not installed, while the final fallback is the GTK default.
+    """
+    commands = (
+        ["gsettings", "get", "org.gnome.desktop.interface", "font-name"],
+        ["fc-match", "-f", "%{size}", "sans"],
+    )
+    for command in commands:
+        try:
+            result = subprocess.run(
+                command,
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if result.returncode != 0:
+            continue
+        match = re.search(r"(\d+(?:\.\d+)?)\s*['\"]?\s*$", result.stdout.strip())
+        if match:
+            return max(6, min(32, round(float(match.group(1)))))
+    return SYSTEM_FONT_SIZE_FALLBACK
+
 
 def font_directory() -> Path:
     data_home = Path(os.environ.get("XDG_DATA_HOME", Path.home() / ".local" / "share"))
