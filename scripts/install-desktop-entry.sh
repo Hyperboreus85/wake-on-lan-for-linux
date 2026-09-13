@@ -12,9 +12,14 @@ mkdir -p \
   "$data_home/icons/hicolor/scalable/apps"
 
 ln -sfn "$project_dir/run.sh" "$bin_dir/wol-linux"
-install -m 0644 \
-  "$project_dir/data/$application_id.desktop" \
-  "$data_home/applications/$application_id.desktop"
+desktop_file="$data_home/applications/$application_id.desktop"
+# Desktop launchers do not necessarily inherit the user's shell PATH.  Use
+# the project path directly so the launcher works from GNOME as well as from
+# a terminal, while keeping the convenience symlink for command-line use.
+sed \
+  -e "s|^Exec=.*|Exec=$project_dir/run.sh|" \
+  -e "/^Exec=/a TryExec=$project_dir/run.sh" \
+  "$project_dir/data/$application_id.desktop" > "$desktop_file"
 install -m 0644 \
   "$project_dir/data/icons/hicolor/index.theme" \
   "$data_home/icons/hicolor/index.theme"
